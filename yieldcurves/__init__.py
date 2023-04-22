@@ -2,87 +2,50 @@
 
 # yieldcurves
 # -----------
-# A Python library for financial yield curves (created by auxilium)
+# A Python library for financial yield curves.
 #
-# Author:
-# Version:  0.1, copyright Wednesday, 12 April 2023
-# Website:  https://github.com//yieldcurves
+# Author:   sonntagsgesicht
+# Version:  0.1, copyright Thursday, 12 April 2023
+# Website:  https://github.com/sonntagsgesicht/yieldcurves
 # License:  Apache License 2.0 (see LICENSE file)
 
 
-import logging
-
-logging.getLogger(__name__).addHandler(logging.NullHandler())
-
-__doc__ = 'A Python library for financial yield curves (created by auxilium)'
-__license__ = 'Apache License 2.0'
-
-__author__ = ''
-__email__ = ''
-__url__ = 'https://github.com//yieldcurves'
-
-__date__ = 'Wednesday, 12 April 2023'
+__doc__ = 'A Python library for financial yield curves.'
 __version__ = '0.1'
-__dev_status__ = '3 - Alpha'  # '4 - Beta'  or '5 - Production/Stable'
-
+__dev_status__ = '4 - Beta'
+__date__ = 'Saturday, 22 April 2023'
+__author__ = 'sonntagsgesicht'
+__email__ = 'sonntagsgesicht@icloud.com'
+__url__ = 'https://github.com/sonntagsgesicht/' + __name__
+__license__ = 'Apache License 2.0'
 __dependencies__ = ()
 __dependency_links__ = ()
 __data__ = ()
 __scripts__ = ()
-__theme__ = ''
+__theme__ = 'sphinx_rtd_theme'
 
-# this is just an example to demonstrate the auxilium workflow
-# it can be removed safely
+import logging
+logging.getLogger(__name__).addHandler(logging.NullHandler())
 
-# in order to import a member from a subpackage or submodule
-# use relative import `from .subpackage import SomeThing`
+# todo:
+#  better BumpGreeksModelUnitTests and BinaryModelUnitTests
+#  add sabr model
+#  add Nelson-Siegel-Svensson interest rate curve
+#  add Curve.plot()
+#  add global calibration using 'lmfit'
+#  add compounding as property to RateCurve
+#  rework FxContainer
 
 
-class Line(object):
-    r""" This a example class (by auxilium)
-
-    The |Line| objects implements a straight line,
-    i.e. a function $y = f(x)$ with
-
-    $$  f(x) = a + b \\cdot x  $$
-
-    where $a$ and $b$ are numbers.
-
-    >>> from yieldcurves import Line
-    >>> a, b = 1, 2
-    >>> line = Line(a, b)
-    >>> line.y(x=3)
-    7
-    >>> line(3)  # Line objects are callable
-    7
-    >>> line.a
-    1
-    >>> line.b
-    2
-
-    """
-    def __init__(self, a=0, b=1):
-        self._a = a
-        self._b = b
-
-    @property
-    def a(self):
-        """ a value """
-        return self._a
-
-    @property
-    def b(self):
-        """ b value """
-        return self._b
-
-    def y(self, x=1):
-        """ gives y value depending on x value argument
-
-        :param x: x value
-        :return: $a + b * x$
-
-        """
-        return self._a + self._b * x
-
-    def __call__(self, x=1):
-        return self.y(x)
+from . import daycount, compounding, interpolation  # noqa E401 E402
+from .curve import Curve, DateCurve, RateCurve, \
+    rate_table, Price, ForwardCurve  # noqa E401 E402
+from .creditcurve import DefaultProbabilityCurve, FlatIntensityCurve, \
+    HazardRateCurve, MarginalDefaultProbabilityCurve, \
+    MarginalSurvivalProbabilityCurve, SurvivalProbabilityCurve, \
+    ProbabilityCurve, CreditCurve  # noqa E401 E402
+from .interestratecurve import InterestRateCurve, DiscountFactorCurve, \
+    CashRateCurve, ZeroRateCurve, ShortRateCurve  # noqa E401 E402
+from .fx import FxForwardCurve, FxContainer, Price, FxRate  # noqa E401 E402
+from .volatilitycurve import VolatilityCurve, TerminalVolatilityCurve, \
+    InstantaneousVolatilityCurve  # noqa E401 E402

@@ -11,15 +11,20 @@
 
 
 from bisect import bisect_left, bisect_right
+from collections import UserDict
 from math import exp, log
 
+from vectorizeit import vectorize
 
-class base_interpolation(object):
+from .repr import representation
+
+
+class _base_interpolation(object):
     """
     Basic class to interpolate given data.
     """
 
-    def __init__(self, x_list=list(), y_list=list()):
+    def __init__(self, x_list=(), y_list=()):
         r""" interpolation class
 
         :param x_list: points $x_1 \dots x_n$
@@ -36,7 +41,7 @@ class base_interpolation(object):
     def __contains__(self, item):
         return item in self.x_list
 
-    def _update(self, x_list=list(), y_list=list()):
+    def _update(self, x_list=(), y_list=()):
         """ _update interpolation data
         :param list(float) x_list: x values
         :param list(float) y_list: y values
@@ -69,6 +74,46 @@ class base_interpolation(object):
         return cls(sorted(xy_dict), (xy_dict[k] for k in sorted(xy_dict)))
 
 
+class base_interpolation(UserDict):
+    """
+    Basic class to interpolate given data.
+    """
+
+    @property
+    def x_list(self):
+        return list(self.keys())
+
+    @property
+    def y_list(self):
+        return list(self.values())
+
+    def __init__(self, x_list=(), y_list=()):
+        r""" interpolation class
+
+        :param x_list: points $x_1 \dots x_n$
+        :param y_list: values $y_1 \dots y_n$
+
+        """
+        # new implementation since dicts are ordered in Python 3.8
+        if not len(set(x_list)) == len(x_list):
+            raise KeyError("identical x values")
+        # super().__init__(sorted(zip(x_list, y_list)))
+        super().__init__(zip(x_list, y_list))
+
+    def __call__(self, x):
+        raise NotImplementedError()
+
+    def __setitem__(self, key, value):
+        super().__setitem__(float(key), float(value))
+        self.data = dict(sorted(self.data.items()))
+
+    def __str__(self):
+        return representation(self, self.x_list, self.y_list, rstyle=False)
+
+    def __repr__(self):
+        return representation(self, self.x_list, self.y_list)
+
+
 class flat(base_interpolation):
     def __init__(self, y=0.0):
         r""" flat or constant interpolation
@@ -95,7 +140,7 @@ class flat(base_interpolation):
 
 
 class default_value_interpolation(base_interpolation):
-    def __init__(self, x_list=list(), y_list=list(), default_value=None):
+    def __init__(self, x_list=(), y_list=(), default_value=None):
         r""" default value interpolation
 
         :param x_list: points $x_1 \dots x_n$
@@ -109,7 +154,8 @@ class default_value_interpolation(base_interpolation):
         and $d$ if no matching $x_i$ is found.
 
         >>> from yieldcurves.interpolation import default_value_interpolation
-        >>> c = default_value_interpolation([1,2,3,1], [1,2,3,4], default_value=42)
+        >>> # c = default_value_interpolation([1,2,3,1], [1,2,3,4], default_value=42)
+        >>> c = default_value_interpolation([1,2,3], [1,2,3], default_value=42)
         >>> c(1)
         1.0
         >>> c(2)
@@ -126,9 +172,17 @@ class default_value_interpolation(base_interpolation):
             return self._default
         return self.y_list[self.x_list.index(x)]
 
+    def __str__(self):
+        return representation(self, self.x_list, self.y_list,
+                              default_value=self._default, rstyle=False)
+
+    def __repr__(self):
+        return representation(self, self.x_list, self.y_list,
+                              default_value=self._default)
+
 
 class no(default_value_interpolation):
-    def __init__(self, x_list=list(), y_list=list()):
+    def __init__(self, x_list=(), y_list=()):
         r""" no interpolation at all
 
         :param x_list: points $x_1 \dots x_n$
@@ -140,7 +194,8 @@ class no(default_value_interpolation):
         $$f(x)=y_i\text{ for } x=x_i \text{ else None}$$
 
         >>> from yieldcurves.interpolation import no
-        >>> c = no([1,2,3,1], [1,2,3,4])
+        >>> # c = no([1,2,3,1], [1,2,3,4])
+        >>> c = no([1,2,3], [1,2,3])
         >>> c(1)
         1.0
         >>> c(2)
@@ -152,7 +207,7 @@ class no(default_value_interpolation):
 
 
 class zero(default_value_interpolation):
-    def __init__(self, x_list=list(), y_list=list()):
+    def __init__(self, x_list=(), y_list=()):
         r""" interpolation by filling with zeros between points
 
         :param x_list: points $x_1 \dots x_n$
@@ -166,7 +221,8 @@ class zero(default_value_interpolation):
 
 
         >>> from yieldcurves.interpolation import zero
-        >>> c = zero([1,2,3,1], [1,2,3,4])
+        >>> # c = zero([1,2,3,1], [1,2,3,4])
+        >>> c = zero([1,2,3], [1,2,3])
         >>> c(1)
         1.0
         >>> c(1.1)
@@ -181,7 +237,7 @@ class zero(default_value_interpolation):
 
 class left(base_interpolation):
 
-    def __init__(self, x_list=list(), y_list=list()):
+    def __init__(self, x_list=(), y_list=()):
         r""" left interpolation
 
         :param x_list: points $x_1 \dots x_n$
@@ -219,7 +275,7 @@ class left(base_interpolation):
 
 
 class constant(left):
-    def __init__(self, x_list=list(), y_list=list()):
+    def __init__(self, x_list=(), y_list=()):
         r""" constant interpolation
 
         :param x_list: points $x_1 \dots x_n$
@@ -232,7 +288,7 @@ class constant(left):
 
 class right(base_interpolation):
 
-    def __init__(self, x_list=list(), y_list=list()):
+    def __init__(self, x_list=(), y_list=()):
         r""" right interpolation
 
         :param x_list: points $x_1 \dots x_n$
@@ -270,7 +326,7 @@ class right(base_interpolation):
 
 
 class nearest(base_interpolation):
-    def __init__(self, x_list=list(), y_list=list()):
+    def __init__(self, x_list=(), y_list=()):
         r""" nearest interpolation
 
         :param x_list: points $x_1 \dots x_n$
@@ -317,7 +373,7 @@ class nearest(base_interpolation):
 
 class linear(base_interpolation):
 
-    def __init__(self, x_list=list(), y_list=list()):
+    def __init__(self, x_list=(), y_list=()):
         r""" linear interpolation
 
         :param x_list: points $x_1 \dots x_n$
@@ -345,9 +401,10 @@ class linear(base_interpolation):
         """
         super().__init__(x_list, y_list)
 
+    @vectorize(keys=['x'])
     def __call__(self, x):
         if len(self.y_list) == 0:
-            raise OverflowError
+            raise OverflowError(f'x_list={self.x_list} y_list={self.y_list}')
         if len(self.y_list) == 1:
             return self.y_list[0]
         i = bisect_left(self.x_list, float(x), 1, len(self.x_list) - 1)
@@ -356,7 +413,7 @@ class linear(base_interpolation):
 
 
 class loglinear(linear):
-    def __init__(self, x_list=list(), y_list=list()):
+    def __init__(self, x_list=(), y_list=()):
         r""" log-linear interpolation
 
         :param x_list: points $x_1 \dots x_n$
@@ -401,7 +458,7 @@ class loglinear(linear):
 
 
 class loglinearrate(linear):
-    def __init__(self, x_list=list(), y_list=list()):
+    def __init__(self, x_list=(), y_list=()):
         r""" log-linear interpolation by annual rates
 
         :param x_list: points $x_1 \dots x_n$
@@ -455,7 +512,7 @@ class loglinearrate(linear):
 
 
 class logconstantrate(constant):
-    def __init__(self, x_list=list(), y_list=list()):
+    def __init__(self, x_list=(), y_list=()):
         r""" log-constant interpolation by annual rates
 
         :param x_list: points $x_1 \dots x_n$
@@ -500,6 +557,64 @@ class logconstantrate(constant):
             return self._y_at_zero
         log_y = super(logconstantrate, self).__call__(x)
         return exp(-log_y * x)
+
+
+class base_extrapolation:
+
+    def __init__(self, mid, left=None, right=None):
+        self.mid = mid
+        self.left = left
+        self.right = right
+
+        domain = self.mid.x_list
+        self.min_max_x = min(domain), max(domain)
+
+    def __call__(self, x):
+        min_x, max_x = self.min_max_x
+
+        if isinstance(x, (int, float)):
+            if self.left and x < min_x:
+                return self.left(x)
+            if self.right and max_x < x:
+                return self.right(x)
+            return self.mid(x)
+
+        # interpolation
+        y = self.mid(_ for _ in x if min_x <= x <= max_x)
+
+        # left extrapolation
+        if self.left:
+            y = self.left(_ for _ in x if x < min_x) + y
+
+        # right extrapolation
+        if self.right:
+            y = y + self.right(_ for _ in x if max_x < x)
+
+        return y
+
+    def __str__(self):
+        return representation(self, self.mid, left=self.left, right=self.right,
+                              rstyle=False)
+
+    def __repr__(self):
+        return representation(self, self.mid, left=self.left, right=self.right)
+
+
+class extrapolation(base_extrapolation):
+
+    def __init__(self, x_list, y_list, mid=linear, left=None, right=None):
+        m = mid(x_list, y_list)
+        l = left(x_list, y_list)
+        r = right(x_list, y_list)
+        super(extrapolation, self).__init__(m, l, r)
+
+
+class waterfall_extrapolation(base_extrapolation):
+
+    def __init__(self, mid, *higher, left=None, right=None):
+        if len(higher):
+            left = waterfall_extrapolation(*higher, left=left)
+        super(waterfall_extrapolation, self).__init__(mid, left, right)
 
 
 class interpolation_scheme(object):
@@ -573,18 +688,15 @@ def _dyn_scheme(left, mid, right):
                 {'_interpolation': (left, mid, right)})
 
 
-constant_linear_constant = \
-    _dyn_scheme(constant, linear, constant)
+constant_linear_constant = _dyn_scheme(constant, linear, constant)
 linear_scheme = constant_linear_constant
 
-logconstant_loglinear_logconstant = \
-    _dyn_scheme(constant, loglinear, constant)
+logconstant_loglinear_logconstant = _dyn_scheme(constant, loglinear, constant)
 log_linear_scheme = logconstant_loglinear_logconstant
 
-logconstantrate_loglinearrate_logconstantrate = \
-    _dyn_scheme(logconstantrate, loglinearrate, logconstantrate)
+logconstantrate_loglinearrate_logconstantrate = _dyn_scheme(
+    logconstantrate, loglinearrate, logconstantrate)
 log_linear_rate_scheme = logconstantrate_loglinearrate_logconstantrate
 
-zero_linear_constant = \
-    _dyn_scheme(zero, linear, constant)
+zero_linear_constant = _dyn_scheme(zero, linear, constant)
 zero_linear_scheme = zero_linear_constant

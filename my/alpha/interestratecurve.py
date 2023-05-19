@@ -10,8 +10,8 @@
 # License:  Apache License 2.0 (see LICENSE file)
 
 
-from .compounding import continuous_rate, simple_compounding, simple_rate
-from .interpolation import constant, linear_scheme, \
+from ..compounding import continuous_rate, simple_compounding, simple_rate
+from ..interpolation import constant, linear_scheme, \
     log_linear_rate_scheme
 from .curve import RateCurve
 

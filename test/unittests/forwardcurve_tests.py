@@ -12,8 +12,8 @@
 
 from unittest import TestCase
 
-from yieldcurves.curve import ForwardCurve
-from yieldcurves.interestratecurve import ZeroRateCurve
+from yieldcurves import ForwardCurve
+from yieldcurves import ZeroRateCurve
 
 
 class ForwardCurveUnitTest(TestCase):

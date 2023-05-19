@@ -13,7 +13,7 @@
 import logging
 from math import sqrt
 
-from .interpolation import zero_linear_scheme
+from ..interpolation import zero_linear_scheme
 from .curve import RateCurve
 
 _logger = logging.getLogger('yieldcurves')

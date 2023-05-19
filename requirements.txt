@@ -2,3 +2,4 @@ auxilium
 businessdate
 regtest
 tabulate
+vectorizeit

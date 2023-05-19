@@ -22,3 +22,6 @@ htmlcov/
 
 *.json
 *.zip
+
+dev.py
+my/

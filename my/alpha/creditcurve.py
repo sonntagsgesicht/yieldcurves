@@ -13,8 +13,8 @@
 from sys import float_info
 
 from .curve import RateCurve
-from .compounding import continuous_compounding, continuous_rate
-from .interpolation import constant, linear_scheme, log_linear_scheme, \
+from ..compounding import continuous_compounding, continuous_rate
+from ..interpolation import constant, linear_scheme, log_linear_scheme, \
     log_linear_rate_scheme
 
 

@@ -153,12 +153,12 @@ class InterpolationUnitTests(TestCase):
                 self.assertFalse(s in f)
         y = [f(s) for s in reversed(self.s)]
         ff = no()
-        ff._update(self.s, y)
+        ff.update(zip(self.s, y))
         for s in self.s:
             self.assertTrue(s in ff)
         for s, e in zip(ff.x_list[:1], ff.x_list[1:]):
             self.assertTrue(s < e)
         for s in self.s:
             self.assertTrue(s in ff)
-            ff._update([s])
+            del ff[s]
             self.assertFalse(s in ff)

@@ -14,8 +14,6 @@ from bisect import bisect_left, bisect_right
 from collections import UserDict
 from math import exp, log
 
-from vectorizeit import vectorize
-
 from .repr import representation
 
 
@@ -96,12 +94,12 @@ class base_interpolation(UserDict):
         """
         # new implementation since dicts are ordered in Python 3.8
         if not len(set(x_list)) == len(x_list):
-            raise KeyError("identical x values")
+            raise KeyError(f"identical x values in {x_list}")
         # super().__init__(sorted(zip(x_list, y_list)))
         super().__init__(zip(x_list, y_list))
 
     def __call__(self, x):
-        raise NotImplementedError()
+        return x
 
     def __setitem__(self, key, value):
         super().__setitem__(float(key), float(value))
@@ -137,6 +135,11 @@ class flat(base_interpolation):
 
     def __call__(self, x):
         return self.y_list[0]
+
+
+class identity(base_interpolation):
+
+    pass
 
 
 class default_value_interpolation(base_interpolation):
@@ -401,7 +404,6 @@ class linear(base_interpolation):
         """
         super().__init__(x_list, y_list)
 
-    @vectorize(keys=['x'])
     def __call__(self, x):
         if len(self.y_list) == 0:
             raise OverflowError(f'x_list={self.x_list} y_list={self.y_list}')

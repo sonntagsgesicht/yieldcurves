@@ -15,7 +15,8 @@ from unittest import TestCase
 from businessdate import BusinessDate, BusinessRange
 
 from yieldcurves.compounding import simple_compounding, continuous_rate
-from yieldcurves import ZeroRateCurve, DiscountFactorCurve, ShortRateCurve, CashRateCurve
+from yieldcurves.wrapper import df as DiscountFactorCurve
+from yieldcurves import ZeroRateCurve, ShortRateCurve, CashRateCurve
 
 
 class InterestRateCurveUnitTests(TestCase):
@@ -30,17 +31,19 @@ class InterestRateCurveUnitTests(TestCase):
         curve = ZeroRateCurve(self.domain, [rate] * self.len)
         for d in self.domain:
             for p in self.periods:
-                self.assertAlmostEqual(curve.get_discount_factor(d + p, d + p), 1.)
+                x = d + p
+                self.assertAlmostEqual(curve.get_discount_factor(x, x), 1.)
 
-                self.assertAlmostEqual(curve.get_zero_rate(self.today, d + p), rate)
-                self.assertAlmostEqual(curve.get_short_rate(d + p), rate)
-                yf = curve.day_count(d + p, (d + p) + curve.forward_tenor)
-                cr = simple_compounding(curve.get_cash_rate(d + p), yf)
+                self.assertAlmostEqual(curve.get_zero_rate(self.today, x), rate)
+                self.assertAlmostEqual(curve.get_short_rate(x), rate)
+                t = '3m'  # curve.forward_tenor
+                yf = curve.day_count(x, x + t)
+                cr = simple_compounding(curve.get_cash_rate(x, x + t), yf)
                 self.assertAlmostEqual(continuous_rate(cr, yf), rate)
 
     def test_discount_factor_curve(self):
         zr_curve = ZeroRateCurve([self.today, self.today + '1d'], [.02, .02])
-        df_curve = DiscountFactorCurve(zr_curve.domain, [1., zr_curve.get_discount_factor(self.today + '1d')])
+        df_curve = DiscountFactorCurve(zr_curve)
         for p in self.periods:
             x = self.today + p
             self.assertAlmostEqual(df_curve.get_discount_factor(x, x), 1.)
@@ -86,7 +89,7 @@ class CastZeroRateCurveUnitTests(TestCase):
 
     def test_interpolation(self):
         curve = self.curve()
-        for t in (DiscountFactorCurve, ZeroRateCurve, ShortRateCurve):
+        for t in (ZeroRateCurve, ShortRateCurve):
             cast = t(curve)
             curve.cast(t)
             recast = self.cast_type(cast)
@@ -128,14 +131,6 @@ class CastZeroRateCurveUnitTests(TestCase):
             cast = self.cast_type(CashRateCurve(curve, forward_tenor='3M'))
             for d in curve.domain[1:]:
                 self.assertAlmostEqual(cast(d), curve(d), self.cash_precision)
-
-
-class CastDiscountFactorCurveUnitTests(CastZeroRateCurveUnitTests):
-    def setUp(self):
-        super(CastDiscountFactorCurveUnitTests, self).setUp()
-        self.cast_type = DiscountFactorCurve
-        self.grid = ['0D', '3M', '12M']
-        self.points = [1., 0.9999, 0.997]
 
 
 class CastShortRateCurveUnitTests(CastZeroRateCurveUnitTests):

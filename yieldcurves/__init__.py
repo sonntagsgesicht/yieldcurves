@@ -32,9 +32,10 @@ logging.getLogger(__name__).addHandler(logging.NullHandler())
 #  add Curve.plot()
 #  add global calibration using 'lmfit'
 
+from .analytics import compounding  # noqa E401 E402
+from . import interpolation  # noqa E401 E402
+from .curve import DateCurve, generate_call_wrapper as _gcw  # noqa E401 E402
+from .api import PriceYieldCurve, FxCurve, ZeroRateCurve, \
+    CashRateCurve  # noqa E401 E402
 
-from . import daycount, compounding, interpolation, parametric, \
-    yieldcurve, datecurve, wrapper  # noqa E401 E402
-from . import assetprice, creditprobability, interestrate, \
-    volatility  # noqa E401 E402
-from .datecurve import ZeroRateCurve  # noqa E401 E402
+df, DF = _gcw({'df': 'df', 'Df': 'get_discount_factor'})

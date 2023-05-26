@@ -15,7 +15,7 @@ sys.path.append('yieldcurves/')
 sys.path.append('.')
 sys.path.append('..')
 
-from .curve_tests import *
+# from .curve_tests import *
 from .creditcurve_tests import *
 from .compounding_tests import *
 from .interestratecurve_tests import *

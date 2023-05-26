@@ -14,8 +14,9 @@ from unittest.case import TestCase
 
 from businessdate import BusinessDate, BusinessRange
 
-from yieldcurves import FlatIntensityCurve, SurvivalProbabilityCurve, HazardRateCurve, MarginalSurvivalProbabilityCurve, \
-    MarginalDefaultProbabilityCurve, DefaultProbabilityCurve
+from yieldcurves import IntensityProbabilityCurve as FlatIntensityCurve, \
+    SurvivalProbabilityCurve, HazardRateProbabilityCurve as HazardRateCurve, \
+    MarginalSurvivalProbabilityCurve, DefaultProbabilityCurve
 
 
 class CreditCurveUnitTests(TestCase):
@@ -91,13 +92,6 @@ class CreditCurveUnitTests(TestCase):
                 fi = i.get_flat_intensity(d + p)
                 self.assertAlmostEqual(mv, fi, 3)  # precision of 3 due to day_count effects
 
-        for q in self.periods:
-            m = MarginalDefaultProbabilityCurve([self.today + q], [1.00], origin=self.today)
-            for d in self.domain:
-                for p in self.periods:
-                    s = m.get_survival_prob(d, d + p)
-                    self.assertAlmostEqual(s, 0.)
-
 
 class CastIntensityCurveUnitTests(TestCase):
     def setUp(self):
@@ -169,13 +163,6 @@ class CastIntensityCurveUnitTests(TestCase):
             for d in curve.domain[1:]:
                 self.assertAlmostEqual(cast(d), curve(d), self.marginal_precision)
 
-    def test_marginal_default_cast(self):
-        for p in self.periods:
-            curve = self.curve(p)
-            cast = self.cast_type(MarginalDefaultProbabilityCurve(curve))
-            for d in curve.domain[1:]:
-                self.assertAlmostEqual(cast(d), curve(d), self.marginal_precision)
-
 
 class CastSurvivalCurveUnitTests(CastIntensityCurveUnitTests):
     def setUp(self):
@@ -206,10 +193,3 @@ class CastMarginalSurvivalCurveUnitTests(CastIntensityCurveUnitTests):
         self.points = [0.02, 0.022, 0.02, 0.03]
         self.precision = 10
         self.marginal_precision = 10
-
-
-class CastMarginalDefaultCurveUnitTests(CastMarginalSurvivalCurveUnitTests):
-    def setUp(self):
-        super(CastMarginalDefaultCurveUnitTests, self).setUp()
-        self.cast_type = MarginalDefaultProbabilityCurve
-        self.points = [1. - p for p in self.points]

@@ -9,12 +9,10 @@
 # Website:  https://github.com/sonntagsgesicht/yieldcurves
 # License:  Apache License 2.0 (see LICENSE file)
 
-from vectorizeit import vectorize
 
 DAYS_IN_YEAR = 365.25
 
 
-#@vectorize(keys=['start', 'end'], zipped=True)
 def day_count(start, end):
     r""" default day count function for rate period calculation
 

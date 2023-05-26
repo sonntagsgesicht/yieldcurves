@@ -21,41 +21,42 @@ def compounding_forwards(curve, x, y=0.0, tenor=None):
     return f
 
 
-def discount_factor_df(df_curve, x, y=0.0, compounding_frequency=None):
+def discount_factor_df(df_curve, x, y=0.0, frequency=None):
     """discount factor from discount factor curve"""
     if x == y:
-        compounding_frequency += 0  # just to use argument
+        frequency += 0  # just to use argument
         return 1.0
     return df_curve(x) / df_curve(y)
 
 
-def zero_rate(df_curve, x, compounding_frequency=None):
+def zero_rate(df_curve, x, y=0.0, frequency=None):
     """zero rate from discount factor curve"""
-    return compounding_rate(df_curve(x), x, compounding_frequency)
+    f = df_curve(x) / df_curve(y)
+    return compounding_rate(f, x - y, frequency)
 
 
-def zero_rate_df(curve, x, y=0.0, compounding_frequency=None):
+def zero_rate_df(curve, x, y=0.0, frequency=None):
     """discount factor from zero rate curve"""
     if x == y:
         return 1.0
-    f = compounding_factor(curve(x), x, compounding_frequency)
+    f = compounding_factor(curve(x), x, frequency)
     if y:
-        f /= compounding_factor(curve(y), y, compounding_frequency)
+        f /= compounding_factor(curve(y), y, frequency)
     return f
 
 
-def cash_rate(df_curve, x, compounding_frequency=4):
+def cash_rate(df_curve, x, y=0.0, frequency=4):
     """cash rate from discount factor curve"""
-    t = 1 / compounding_frequency
-    f = discount_factor_df(df_curve, x + t, x)
-    return simple_rate(f, t)
+    y = y or x + 1 / frequency
+    f = discount_factor_df(df_curve, y, x)
+    return simple_rate(f, y - x)
 
 
-def cash_rate_df(curve, x, y=0.0, compounding_frequency=4):
+def cash_rate_df(curve, x, y=0.0, frequency=4):
     """discount factor from cash rate curve"""
     if x == y:
         return 1.0
-    t = 1 / compounding_frequency
+    t = 1 / frequency
     return compounding_forwards(curve, x, y, tenor=t)
 
 
@@ -65,9 +66,9 @@ def short_rate(df_curve, x):
     return continuous_rate(f, EPS)
 
 
-def short_rate_df(curve, x, y=0.0, compounding_frequency=None):
+def short_rate_df(curve, x, y=0.0, frequency=None):
     """discount factor from short rate curve"""
     if x == y:
-        compounding_frequency += 0  # just to use argument
+        frequency += 0  # just to use argument
         return 1.0
     return compounding_forwards(curve, x, y)

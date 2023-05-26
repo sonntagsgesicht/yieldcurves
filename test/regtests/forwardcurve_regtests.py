@@ -1,15 +1,14 @@
 
 from regtest import RegressionTestCase
 
-from yieldcurves import ForwardCurve
+from yieldcurves import PriceCurve as ForwardCurve
 
 
 class ForwardCurveRegTests(RegressionTestCase):
 
     def setUp(self):
-        self.domain = tuple(range(1,10))
-        self.foo = lambda x: x*x
-        self.data = tuple(map(self.foo, self.domain))
+        self.domain = tuple(range(1, 10))
+        self.data = tuple(map(lambda x: x*x, self.domain))
         self.rate = 0.01
         self.spot = self.data[-1]
 

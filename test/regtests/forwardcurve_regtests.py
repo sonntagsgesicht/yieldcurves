@@ -1,7 +1,7 @@
 
 from regtest import RegressionTestCase
 
-from yieldcurves import PriceCurve as ForwardCurve
+from yieldcurves import ForwardPriceCurve as ForwardCurve
 
 
 class ForwardCurveRegTests(RegressionTestCase):

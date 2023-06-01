@@ -2,7 +2,8 @@ from math import prod
 
 from .repr import attr, repr_attr, repr_algebra
 
-from . import daycount as _day_count
+from .daycount import day_count as _day_count
+from .interpolation import linear
 from . import interpolation as _interpolation
 
 
@@ -10,118 +11,72 @@ from . import interpolation as _interpolation
 
 
 class curve_wrapper:
-    """wrapper to set instance method as callable feature
 
-    let :code:`curve.foo` be a method
-    then use :code:`foo = CallableWrapper.new('foo')`
-    as :code:`foo(curve)(x)`
-    for :code:`curve.foo(x)`
-
-    """
-
-    def __init__(self, curve, **__):
+    def __init__(self, curve, origin=None, call=None, invisible=False):
         self.curve = curve
-        for k, v in __:
-            setattr(self, k, v)
+        self.origin = origin
+        self.call = call
+        self.invisible = invisible
 
     def __copy__(self):
+        if self.invisible:
+            if hasattr(self.curve, '__copy__'):
+                return self.curve.__copy__()
+            return self.curve.__class__(self.curve)
         args, kwargs = attr(self, 'curve')
         return self.__class__(*args, **kwargs)
 
     def __str__(self):
+        if self.invisible:
+            return str(self.curve)
         return repr_attr(self, 'curve', rstyle=False)
 
     def __repr__(self):
+        if self.invisible:
+            return repr(self.curve)
         return repr_attr(self, 'curve')
 
     def __bool__(self):
         return bool(self.curve)
 
-    def __getattr__(self, item):
-        return getattr(self.curve, item)
-
     def __getitem__(self, item):
-        return self.curve[item]
+        return self.curve[self._f(item)]
 
     def __setitem__(self, key, value):
-        self.curve[key] = value
+        self.curve[self._f(key)] = value
 
     def __delitem__(self, key):
-        del self.curve[key]
+        del self.curve[self._f(key)]
 
     def __iter__(self):
-        return iter(self.curve)
+        return iter(map(self._g, self.curve))
 
     def __contains__(self, item):
-        return item in self.curve
+        return self._f(item) in self.curve
 
-    def __call__(self, *x):
-        return self.curve(*x)
+    def __call__(self, *_, **__):
+        _ = tuple(self._f(v) for v in _)
+        __ = dict((k, self._f(v)) for k, v in __.items())
 
+        if self.call is None:
+            return self.curve(*_, **__)
+        if callable(self.call):
+            return self.call(self.curve, *_, **__)
+        return getattr(self.curve, self.call)(*_, **__)
 
-class call_wrapper(curve_wrapper):
-    """wrapper to set instance method as callable feature
+    def _f(self, x):
+        """transform arguments into real float values"""
+        return x if self.origin is None else x - self.origin
 
-    let :code:`curve.foo` be a method
-    then use :code:`foo = CallableWrapper.new('foo')`
-    as :code:`foo(curve)(x)`
-    for :code:`curve.foo(x)`
-
-    """
-
-    def __init__(self, curve, *, func=None, **__):
-        func = func or self.__class__.__name__
-        super().__init__(curve, func=func, **__)
-
-    def __call__(self, *x):
-        if callable(self.func):
-            return self.func(self.curve, *x)
-        return getattr(self.curve, self.func)(*x)
+    def _g(self, y):
+        """transform real float arguments into values"""
+        return y if self.origin is None else self.origin + y
 
 
-def generate_call_wrapper(*names, **names_funcs):
-    """generate multiple call_wrapper subtypes by names"""
-    r = tuple(type(n, (call_wrapper,), {}) for n in names)
-    nf = names_funcs.items()
-    r += tuple(type(n, (call_wrapper,), {'func': f}) for n, f in nf)
-    return r
+class float_curve(curve_wrapper):
 
-
-class invisible_curve_wrapper(curve_wrapper):
-
-    def __copy__(self):
-        return self.curve.__copy__()
-
-    def __str__(self):
-        return str(self.curve)
-
-    def __repr__(self):
-        return repr(self.curve)
-
-
-def interpolation_builder(x_list, y_list, interpolation):
-    # gather interpolation
-    if isinstance(interpolation, str):
-        i_type = getattr(_interpolation, interpolation)
-    else:
-        i_type = interpolation
-        interpolation = getattr(i_type, '__name__', str(i_type))
-    return invisible_curve_wrapper(i_type(x_list, y_list),
-                                   interpolation=interpolation)
-
-
-class typed_wrapper(invisible_curve_wrapper):
-
-    def __init__(self, curve, curve_type=None, args=(),  **kwargs):
-        if curve_type:
-            curve = curve_type(curve, *args)
-        super().__init__(curve, curve_type=curve_type, args=args, **kwargs)
-
-
-class float_curve(invisible_curve_wrapper):
-
-    def __init__(self, curve=0.0):
-        super().__init__(curve)
+    def __init__(self, curve=0.0, origin=None):
+        super().__init__(curve, origin=origin, invisible=True)
 
     def __float__(self):
         return float(self.curve)
@@ -138,23 +93,11 @@ class float_curve(invisible_curve_wrapper):
     def __delitem__(self, key):
         self.curve = 0.0
 
-    def __call__(self, *x):
+    def __call__(self, *_, **__):
         return self.curve
 
     def __iter__(self):
-        return iter([])
-
-    def __contains__(self, item):
-        return item == self
-
-
-def init_curve(curve):
-    if isinstance(curve, (int, float)):
-        return float_curve(curve)
-    if isinstance(curve, curve_wrapper):
-        return curve
-    else:
-        return invisible_curve_wrapper(curve)
+        return iter([self.origin])
 
 
 class curve_algebra(curve_wrapper):
@@ -184,12 +127,12 @@ class curve_algebra(curve_wrapper):
 
         super().__init__(curve)
 
-    def __call__(self, x):
-        r = self.curve(x)
-        r *= prod(m(x) for m in self.mul)
-        r /= prod(d(x) for d in self.div)
-        r += sum(a(x) for a in self.add)
-        r -= sum(s(x) for s in self.sub)
+    def __call__(self, *_, **__):
+        r = self.curve(*_, **__)
+        r *= prod(m(*_, **__) for m in self.mul)
+        r /= prod(d(*_, **__) for d in self.div)
+        r += sum(a(*_, **__) for a in self.add)
+        r -= sum(s(*_, **__) for s in self.sub)
         return self.spread + self.leverage * r
 
     def __add__(self, other):
@@ -236,13 +179,41 @@ class curve_algebra(curve_wrapper):
         return repr_algebra(self.curve, self.mul, self.div, self.add, self.sub)
 
 
+# --- curve_wrapper builder functions ---
 
 
-class DateCurve(curve_wrapper):
+def init_curve(curve):
+    if isinstance(curve, (int, float)):
+        curve = float_curve(curve)
+    if isinstance(curve, curve_wrapper):
+        return curve
+    return curve_wrapper(curve, invisible=True)
 
-    date_type = None
 
-    def __init__(self, curve, origin=None, day_count=None, **kwargs):
+def generate_call_wrapper(name, function=None):
+    """generate multiple call_wrapper subtypes by names"""
+    return type(name, (curve_wrapper,), {'call': function or name})
+
+
+def interpolation_builder(x_list, y_list, interpolation):
+    # gather interpolation
+    if isinstance(interpolation, str):
+        i_type = getattr(_interpolation, interpolation)
+    else:
+        i_type = interpolation
+        interpolation = getattr(i_type, '__name__', str(i_type))
+    new = curve_wrapper(i_type(x_list, y_list), invisible=True)
+    new.interpolation = interpolation
+    return new
+
+
+# --- DomainCurve class ---
+
+
+class DomainCurve(curve_wrapper):
+
+    def __init__(self, domain=(), curve=(), interpolation=linear,
+                 origin=None, day_count=None, date_type=None):
         """
         :param curve: underlying curve
         :param day_count: function to calculate year fractions
@@ -252,15 +223,22 @@ class DateCurve(curve_wrapper):
         :param **kwargs:
         """
 
-        # build curve
-        if isinstance(curve, DateCurve):
-            day_count = day_count or curve.day_count
-            origin = origin or curve.origin
+        self.domain = domain
+        self.day_count = day_count
+
+        # re-use curve
+        if isinstance(curve, DomainCurve):
+            day_count = curve.day_count if day_count is None else day_count
+            origin = curve.origin if origin is None else origin
+            domain = curve.domain if not domain else domain
             curve = curve.curve
+
+        # gather date type
+        if date_type is None:
+            date_type = None if origin is None else type(origin)
 
         # gather origin
         if origin is None:
-            date_type = self.__class__.date_type
             if date_type is None:
                 origin = 0.0
             elif hasattr(date_type, 'today'):
@@ -268,83 +246,29 @@ class DateCurve(curve_wrapper):
             else:
                 origin = date_type()
 
-        curve = init_curve(curve)
-        super().__init__(curve, origin=origin, day_count=day_count, **kwargs)
+        # either re-use curve
+        if callable(curve) or isinstance(curve, (int, float)):
+            curve = init_curve(curve)
 
-    def __getattr__(self, item):
-        attr = getattr(self.curve, item)
-        if callable(attr):
-            return lambda *a, **kw: attr(*self._yf(a), **self._yf(kw))
-        return attr
+        # or build curve
+        else:
+            self.origin = origin
+            self.day_count = day_count
+            yf_domain = type(domain)(self._f(d) for d in domain)
+            curve = init_curve(interpolation(yf_domain, curve))
+
+        super().__init__(curve, origin=origin)
+        self.domain = domain
+        self.day_count = day_count
 
     def __iter__(self):
-        # inverse of day_count(origin, x) -> origin + yf
-        return iter(self.origin + yf for yf in self.curve)
-
-    def __contains__(self, item):
-        return self._yf(item) in self.curve
-
-    def __call__(self, x, *args, **kwargs):
-        return self.curve(self._yf(x), *self._yf(args), **self._yf(kwargs))
-
-    def _yf(self, x):
-        if not x:
-            return x
-        origin = self.origin
-        day_count = self.day_count or _day_count
-        if isinstance(x, (list, tuple)):
-            return type(x)([day_count(origin, a) for a in x])
-        if isinstance(x, dict):
-            y, *_ = x.values()
-            return dict((k, day_count(origin, v)) for k, v in x.items())
-        return day_count(origin, x)
-
-
-class ParametricDateCurve(DateCurve):
-
-    def __init__(self, function, param=None, origin=None, day_count=None,
-                 **kwargs):
-
-        # build curve
-        if param is None:
-            # if no param given + function is curve_wrapper bypass curve build
-            if isinstance(function, curve_wrapper):
-                f_curve = function
-            else:
-                f_curve = function()
-        elif isinstance(param, (list, tuple)):
-            f_curve = function(*param)
-        elif isinstance(param, dict):
-            f_curve = function(**param)
-        else:
-            f_curve = function(param)
-
-        super().__init__(f_curve, origin=origin, day_count=day_count, **kwargs)
-
-
-class InterpolatedDateCurve(DateCurve):
-
-    interpolation_type = None
-
-    def __init__(self, domain, data=None, interpolation=None, origin=None,
-                 day_count=None, **kwargs):
-
-        # build curve
-        if data is None:
-            # if no data given bypass i_type build
-            curve, domain = domain, ()
-        else:
-            cls = type(domain)
-            yf_domain = cls(self._yf(d) for d in domain)
-            if interpolation is None:
-                interpolation = self.__class__.interpolation_type
-            curve = interpolation_builder(yf_domain, data, interpolation)
-
-        super().__init__(curve, domain=domain, data=data,
-                         interpolation=curve.interpolation,
-                         origin=origin, day_count=day_count, **kwargs)
-
-    def __iter__(self):
-        if isinstance(self.domain, (int, float)):
-            return iter([])
+        if not self.domain:
+            return iter(super())
         return iter(self.domain)
+
+    def _f(self, x):
+        if self.day_count is None:
+            # if hasattr(self.origin, 'day_count'):
+            #     return self.origin.day_count(x)
+            return _day_count (self.origin, x)
+        return self.day_count(self.origin, x)

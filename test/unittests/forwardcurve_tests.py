@@ -12,7 +12,7 @@
 
 from unittest import TestCase
 
-from yieldcurves import PriceCurve as ForwardCurve
+from yieldcurves import ForwardPriceCurve as ForwardCurve
 from yieldcurves import ZeroRateCurve
 
 

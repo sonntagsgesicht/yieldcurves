@@ -13,8 +13,8 @@ from math import exp, log
 
 from unittest.case import TestCase
 
-from yieldcurves.datecurve import InterpolatedDateYieldCurve as FxRate
-from yieldcurves import FxCurve as FxForwardCurve, ZeroRateCurve
+from yieldcurves.curve import InterpolatedDateCurve as FxRate
+from yieldcurves import ForwardFxCurve as FxForwardCurve, ZeroRateCurve
 
 
 class FxUnitTests(TestCase):

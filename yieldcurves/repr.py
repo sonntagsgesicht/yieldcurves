@@ -1,5 +1,6 @@
 
 from reprlib import Repr
+from inspect import signature
 
 _repr = Repr()
 _repr.maxlist = _repr.maxtuple = 2
@@ -40,10 +41,23 @@ def attr(x, *args, protected=False):
     if `protected` is **True** also attributes starting with an underscore
     are returned.
     """
-    _kwargs = dict((k, getattr(x, k)) for k in x.__slots__ or ())
-    _kwargs.update(getattr(x, '__dict__', {}))
+    if hasattr(x, '__slots__'):
+        _kwargs = dict((k, getattr(x, k)) for k in x.__slots__ or ())
+    else:
+        _kwargs = getattr(x, '__dict__', {})
     if not protected:
-        _kwargs = dict((k, v) for k, v in _kwargs if not k.startswith('_'))
+        _kwargs = dict((k, v) for k, v in _kwargs.items() if not k.startswith('_'))
+    _args = [_kwargs.pop(i) for i in args if i in _kwargs]
+    return _args, _kwargs
+
+
+def params(x, *args):
+    if hasattr(x, '__slots__'):
+        _kwargs = dict((k, getattr(x, k)) for k in x.__slots__ or ())
+    else:
+        _kwargs = getattr(x, '__dict__', {})
+    _params = signature(x.__class__).parameters
+    _ = [_kwargs.pop(i) for i in _kwargs if i not in _params]
     _args = [_kwargs.pop(i) for i in args if i in _kwargs]
     return _args, _kwargs
 

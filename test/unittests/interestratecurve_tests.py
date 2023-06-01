@@ -15,7 +15,7 @@ from unittest import TestCase
 from businessdate import BusinessDate, BusinessRange
 
 from yieldcurves.compounding import simple_compounding, continuous_rate
-from yieldcurves.wrapper import df as DiscountFactorCurve
+from yieldcurves import DF as DiscountFactorCurve
 from yieldcurves import ZeroRateCurve, ShortRateCurve, CashRateCurve
 
 
@@ -91,7 +91,6 @@ class CastZeroRateCurveUnitTests(TestCase):
         curve = self.curve()
         for t in (ZeroRateCurve, ShortRateCurve):
             cast = t(curve)
-            curve.cast(t)
             recast = self.cast_type(cast)
             self.assertEqual(self.cast_type._INTERPOLATION, curve._INTERPOLATION)
             self.assertEqual(t._INTERPOLATION, cast._INTERPOLATION)
@@ -143,5 +142,6 @@ class CastCashRateCurveUnitTests(CastZeroRateCurveUnitTests):
     def setUp(self):
         super(CastCashRateCurveUnitTests, self).setUp()
         self.cast_type = CashRateCurve
+        self.cast_type.date_type = BusinessDate
         self.precision = 2
         self.cash_precision = 10

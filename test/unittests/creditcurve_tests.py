@@ -14,9 +14,7 @@ from unittest.case import TestCase
 
 from businessdate import BusinessDate, BusinessRange
 
-from yieldcurves import IntensityProbabilityCurve as FlatIntensityCurve, \
-    SurvivalProbabilityCurve, HazardRateProbabilityCurve as HazardRateCurve, \
-    MarginalSurvivalProbabilityCurve, DefaultProbabilityCurve
+from yieldcurves import RateCurve
 
 
 class CreditCurveUnitTests(TestCase):

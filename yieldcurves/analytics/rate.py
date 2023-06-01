@@ -7,14 +7,15 @@ from ..curve import curve_wrapper, init_curve
 EPS = 1/250
 
 
-def compounding_forwards(curve, x, y=0.0, tenor=None):
+def compounding_df(curve, x, y=0.0, tenor=None, compounding=None):
     """compound forward rates"""
     # integrate from y to x the discount factor f
     if x == y:
         return 1.0
     if x < y:
-        return 1 / compounding_forwards(curve, x, y, tenor=tenor)
-    compounding = simple_compounding if tenor else continuous_compounding
+        return 1 / compounding_df(curve, x, y, tenor=tenor)
+    if compounding is None:
+        compounding = simple_compounding if tenor else continuous_compounding
     t = tenor or EPS
     f = 1.0
     while y + t < x:
@@ -60,7 +61,7 @@ def cash_rate_df(curve, x, y=0.0, frequency=4):
     if x == y:
         return 1.0
     t = 1 / frequency
-    return compounding_forwards(curve, x, y, tenor=t)
+    return compounding_df(curve, x, y, tenor=t, compounding=simple_compounding)
 
 
 def short_rate(df_curve, x):
@@ -69,12 +70,12 @@ def short_rate(df_curve, x):
     return continuous_rate(f, EPS)
 
 
-def short_rate_df(curve, x, y=0.0, frequency=None):
+def short_rate_df(curve, x, y=0.0, frequency=4):
     """discount factor from short rate curve"""
     if x == y:
-        frequency = frequency  # just to use argument
+        frequency = frequency
         return 1.0
-    return compounding_forwards(curve, x, y)
+    return compounding_df(curve, x, y, compounding=continuous_compounding)
 
 
 # --- interest rate curve class ---
@@ -105,8 +106,8 @@ class rate_curve(curve_wrapper):
         return zero_rate(self.df, x, y, frequency=self.frequency)
 
     def cash(self, x, y=0.0):
-        y = x + 1 / self.frequency if not y else y
-        return cash_rate(self.df, y, x)
+        #y = x + 1 / self.frequency if not y else y
+        return cash_rate(self.df, y, x, frequency=self.frequency)
 
     def short(self, x):
         return short_rate(self.df, x)

@@ -16,9 +16,7 @@ sys.path.append('.')
 sys.path.append('..')
 
 # from .curve_tests import *
-from .creditcurve_tests import *
+from .analystics_tests import *
 from .compounding_tests import *
-from .interestratecurve_tests import *
+from .dcfcurve_tests import *
 from .interpolation_tests import *
-from .fx_tests import *
-from .forwardcurve_tests import *

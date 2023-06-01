@@ -1,7 +1,7 @@
 from math import prod
 from ..compounding import continuous_compounding, continuous_rate
 from ..curve import curve_wrapper, init_curve
-from .rate import compounding_forwards, EPS
+from .rate import compounding_df, EPS
 
 
 def probability_prob(curve, x, y=0.0):
@@ -49,7 +49,7 @@ def hazard_rate(prob, x):
 
 def hazard_rate_prob(curve, x):
     """survival probability from hazard rate"""
-    return compounding_forwards(curve, x)
+    return compounding_df(curve, x)
 
 
 # --- credit probability curve classes ---

@@ -13,10 +13,10 @@
 from unittest import TestCase
 
 from yieldcurves.analytics import rate_curve
-from yieldcurves.analytics.rate import zero_rate, zero_rate_df
+from yieldcurves.analytics.rate import zero_rate, short_rate, cash_rate,\
+    zero_rate_df, short_rate_df, cash_rate_df
+
 from yieldcurves.interpolation import constant, linear
-from yieldcurves.curve import interpolation_builder, generate_call_wrapper, \
-    init_curve
 
 
 def lin(start, stop, step):
@@ -26,34 +26,58 @@ def lin(start, stop, step):
     return r
 
 
-df = generate_call_wrapper('df')
-zero = generate_call_wrapper('zero')
-cash = generate_call_wrapper('cash')
-short = generate_call_wrapper('short')
-
-
 class AnalyticsUnitTests(TestCase):
     def setUp(self):
-        self.today = 1.0
-        x_list = [0.25 * x for x in range(8)]
-        y_list = [0.01, 0.015, 0.02, 0.018] * 2
-        self.lin_curve = interpolation_builder(x_list, y_list, linear)
+        x_list = lin(0.01, 2.9, 0.2)
+        y_list = [0.017, 0.015, 0.02, 0.018] * len(x_list)
+        self.xy_list = x_list, y_list[:len(x_list)]
+        self.periods = lin(0.01, 3.0, 0.1)
+        self.places = 7
+
+    def test_zero_rate_df(self):
+        inner = linear(*self.xy_list)
+        curve = rate_curve(inner)
+        for x in self.periods:
+            a = curve.df(x)
+            b = zero_rate_df(curve.zero, x)
+            self.assertAlmostEqual(a, b, places=self.places)
+
+    def test_short_rate_df(self):
+        inner = linear(*self.xy_list)
+        curve = rate_curve(inner)
+        for x in self.periods:
+            a = curve.df(x)
+            b = short_rate_df(curve.short, x)
+            self.assertAlmostEqual(a, b, places=self.places)
+
+    def test_cash_rate_df(self):
+        inner = linear(*self.xy_list)
+        curve = rate_curve(inner, frequency=4)
+        for x in self.periods:
+            a = curve.df(x)
+            b = cash_rate_df(curve.cash, x)
+            self.assertAlmostEqual(a, b, places=self.places)
 
     def test_zero_rate(self):
-        for d in self.lin_curve:
-            ds = init_curve(zero_rate_df(self.lin_curve, d))
-            zs = zero_rate(ds, d)
+        inner = linear(*self.xy_list)
+        curve = rate_curve(inner)
+        for x in self.periods:
+            a = inner(x)
+            b = zero_rate(curve.df, x)
+            self.assertAlmostEqual(a, b, places=self.places)
 
-    def test_rate_curve(self):
-        zero_curve = rate_curve(self.lin_curve, frequency=4, curve_type='zero')
-        for d in lin(0.001, 8.0, 0.1):
-            self.assertAlmostEqual(zero_curve.zero(d), self.lin_curve(d))
+    def test_short_rate(self):
+        inner = linear(*self.xy_list)
+        curve = rate_curve(inner, curve_type='short')
+        for x in self.periods:
+            a = inner(x)
+            b = short_rate(curve.df, x)
+            self.assertAlmostEqual(a, b, places=self.places)
 
-        other_curve = rate_curve(short(zero_curve), frequency=4, curve_type='short')
-        for d in lin(0.0, 2.0, 0.1):
-            self.assertAlmostEqual(zero_curve.df(d), other_curve.df(d))
-
-        other_curve = rate_curve(cash(zero_curve), frequency=4, curve_type='cash')
-        for d in lin(0.0, 2.0, 0.1):
-            self.assertAlmostEqual(zero_curve.cash(d), cash(zero_curve)(d))
-            self.assertAlmostEqual(zero_curve.cash(d), other_curve.cash(d))
+    def test_cash_rate(self):
+        inner = linear(*self.xy_list)
+        curve = rate_curve(inner, curve_type='cash', frequency=4)
+        for x in self.periods:
+            a = inner(x)
+            b = cash_rate(curve.df, x)
+            self.assertAlmostEqual(a, b, places=self.places)

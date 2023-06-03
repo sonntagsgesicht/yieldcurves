@@ -146,7 +146,7 @@ def daily_compounding(rate_value, maturity_value):
 
 
 @vectorize(['rate_value', 'maturity_value'], zipped=True)
-def compounding_factor(rate_value, maturity_value, period_value):
+def compounding_factor(rate_value, maturity_value, period_value=None):
     r"""compounded discount factor
 
     :param rate_value: interest rate $r$ per year
@@ -164,6 +164,7 @@ def compounding_factor(rate_value, maturity_value, period_value):
     return periodic_compounding(rate_value, maturity_value, period_value)
 
 
+@vectorize(['df', 'period_fraction'], zipped=True)
 def compounding_rate(df, period_fraction, frequency):
     r"""interest rate from compounded discount factor
 

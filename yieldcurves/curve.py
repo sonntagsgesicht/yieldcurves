@@ -1,6 +1,7 @@
 from math import prod
+from vectorizeit import vectorize
 
-from .repr import attr, repr_attr, repr_algebra
+from .tools import attr, repr_attr, repr_algebra, ascii_plot
 
 from .daycount import day_count as _day_count
 from .interpolation import linear
@@ -10,11 +11,10 @@ from . import interpolation as _interpolation
 # --- base curve classes ---
 
 
-class curve_wrapper:
+class CurveWrapper:
 
-    def __init__(self, curve, origin=None, call=None, invisible=False):
+    def __init__(self, curve, call=None, invisible=None):
         self.curve = curve
-        self.origin = origin
         self.call = call
         self.invisible = invisible
 
@@ -54,29 +54,62 @@ class curve_wrapper:
     def __contains__(self, item):
         return self._f(item) in self.curve
 
+    def keys(self):
+        return self.curve.keys()
+
+    def values(self):
+        return self.curve.values()
+
+    def items(self):
+        return self.curve.items()
+
+    def pop(self, item):
+        return self.pop(item)
+
+    def update(self, data):
+        return self.curve.update(data)
+
+    @vectorize()
     def __call__(self, *_, **__):
         _ = tuple(self._f(v) for v in _)
         __ = dict((k, self._f(v)) for k, v in __.items())
 
         if self.call is None:
-            return self.curve(*_, **__)
-        if callable(self.call):
-            return self.call(self.curve, *_, **__)
-        return getattr(self.curve, self.call)(*_, **__)
+            r = self.curve(*_, **__)
+        elif callable(self.call):
+            r = self.call(self.curve, *_, **__)
+        else:
+            r = getattr(self.curve, self.call)(*_, **__)
+        return r
 
-    def _f(self, x):
+    @vectorize()
+    def _f(self, x, y=None):
         """transform arguments into real float values"""
-        return x if self.origin is None else x - self.origin
+        if x is None:
+            return None
+        if y is None:
+            return x
+        return y - x
 
-    def _g(self, y):
+    @vectorize()
+    def _g(self, x, y=None):
         """transform real float arguments into values"""
-        return y if self.origin is None else self.origin + y
+        if x is None:
+            return None
+        if y is None:
+            return x
+        return x + y
+
+    def plot(self, x=()):
+        if not x:
+            x = [0.01 * i for i in range(100)]
+        ascii_plot(x, self)
 
 
-class float_curve(curve_wrapper):
+class ConstantCurve(CurveWrapper):
 
-    def __init__(self, curve=0.0, origin=None):
-        super().__init__(curve, origin=origin, invisible=True)
+    def __init__(self, curve=0.0):
+        super().__init__(curve, invisible=True)
 
     def __float__(self):
         return float(self.curve)
@@ -93,47 +126,55 @@ class float_curve(curve_wrapper):
     def __delitem__(self, key):
         self.curve = 0.0
 
+    def __iter__(self):
+        return iter([None])
+
+    @vectorize()
     def __call__(self, *_, **__):
         return self.curve
 
-    def __iter__(self):
-        return iter([self.origin])
 
-
-class curve_algebra(curve_wrapper):
+class CurveAlgebra(CurveWrapper):
     """algebraic operations on curves
 
     (c1 + ... + cn)
     * m1 * ... * mk / d1 / ... / dl
     + a1 + ... at - s1 - ... - sr"""
 
-    def __init__(self, curve, add=(), sub=(), mul=(), div=(), inplace=False):
+    def __init__(self, curve, add=(), sub=(), mul=(), div=(),
+                 spread=None, leverage=None, inplace=False,
+                 call=None, invisible=False):
         self._inplace = inplace
-        self.spread = 0.0
-        self.leverage = 1.0
-        self.add = [init_curve(curve) for curve in add]
-        self.sub = [init_curve(curve) for curve in sub]
-        self.mul = [init_curve(curve) for curve in mul]
-        self.div = [init_curve(curve) for curve in div]
 
-        if isinstance(curve, curve_algebra):
-            self.spread = curve.spread
-            self.leverage = curve.leverage
-            self.add.extend(curve.add)
-            self.sub.extend(curve.sub)
-            self.mul.extend(curve.mul)
-            self.div.extend(curve.div)
+        if isinstance(curve, CurveAlgebra):
+            spread = curve.spread if spread is None else spread
+            leverage = curve.leverage if leverage is None else leverage
+            add.extend(curve.add)
+            sub.extend(curve.sub)
+            mul.extend(curve.mul)
+            div.extend(curve.div)
             curve = curve.curve
 
-        super().__init__(curve)
+        self.spread = spread
+        self.leverage = leverage
+        self.add = [init_curve(a) for a in add]
+        self.sub = [init_curve(s) for s in sub]
+        self.mul = [init_curve(m) for m in mul]
+        self.div = [init_curve(d) for d in div]
 
+        super().__init__(curve, call=call, invisible=invisible)
+
+    @vectorize()
     def __call__(self, *_, **__):
-        r = self.curve(*_, **__)
+        r = super().__call__(*_, **__)
         r *= prod(m(*_, **__) for m in self.mul)
         r /= prod(d(*_, **__) for d in self.div)
         r += sum(a(*_, **__) for a in self.add)
         r -= sum(s(*_, **__) for s in self.sub)
-        return self.spread + self.leverage * r
+
+        spread = 0.0 if self.spread is None else self.spread
+        leverage = 1.0 if self.leverage is None else self.leverage
+        return spread + leverage * r
 
     def __add__(self, other):
         curve = self if self._inplace else self.__copy__()
@@ -184,25 +225,25 @@ class curve_algebra(curve_wrapper):
 
 def init_curve(curve):
     if isinstance(curve, (int, float)):
-        curve = float_curve(curve)
-    if isinstance(curve, curve_wrapper):
+        curve = ConstantCurve(curve)
+    if isinstance(curve, CurveWrapper):
         return curve
-    return curve_wrapper(curve, invisible=True)
+    return CurveWrapper(curve, invisible=True)
 
 
-def generate_call_wrapper(name, function=None):
-    """generate multiple call_wrapper subtypes by names"""
-    return type(name, (curve_wrapper,), {'call': function or name})
+def call_wrapper(name, function=None):
+    """generate call_wrapper subtypes by names"""
+    return type(name, (CurveWrapper,), {'call': function or name})
 
 
-def interpolation_builder(x_list, y_list, interpolation):
+def interpolation_builder(x_list, y_list, interpolation, **__):
     # gather interpolation
     if isinstance(interpolation, str):
         i_type = getattr(_interpolation, interpolation)
     else:
         i_type = interpolation
         interpolation = getattr(i_type, '__name__', str(i_type))
-    new = curve_wrapper(i_type(x_list, y_list), invisible=True)
+    new = CurveWrapper(i_type(x_list, y_list, **__), invisible=True)
     new.interpolation = interpolation
     return new
 
@@ -210,19 +251,37 @@ def interpolation_builder(x_list, y_list, interpolation):
 # --- DomainCurve class ---
 
 
-class DomainCurve(curve_wrapper):
+class DomainCurve(CurveWrapper):
 
-    def __init__(self, domain=(), curve=(), interpolation=linear,
-                 origin=None, day_count=None, date_type=None):
-        """
-        :param curve: underlying curve
-        :param day_count: function to calculate year fractions
-            (time between dates as a float)
-        :param origin: origin date of curve
-        :param curve_type:
-        :param **kwargs:
-        """
+    date_type = float
 
+    @classmethod
+    def interpolated(cls, domain=(), data=(), interpolation=linear,
+                     origin=None, day_count=None, **__):
+        # init instance
+        self = cls(curve=(), domain=domain, origin=origin, day_count=day_count)
+        # transform domain and build inner curve
+        f_domain = tuple(self._f(d) for d in self.domain)
+        self.curve = interpolation_builder(f_domain, data, interpolation, **__)
+        return self
+
+    def __init__(self, curve=(), domain=(), origin=None, day_count=None,
+                 call=None, invisible=False):
+
+        domain = tuple(domain)
+
+        # gather origin
+        if origin is None:
+            if domain:
+                origin = domain[0]
+            else:
+                date_type = self.__class__.date_type
+                if hasattr(date_type, 'today'):
+                    origin = date_type.today()
+                else:
+                    origin = date_type()
+
+        self.origin = origin
         self.domain = domain
         self.day_count = day_count
 
@@ -233,42 +292,31 @@ class DomainCurve(curve_wrapper):
             domain = curve.domain if not domain else domain
             curve = curve.curve
 
-        # gather date type
-        if date_type is None:
-            date_type = None if origin is None else type(origin)
-
-        # gather origin
-        if origin is None:
-            if date_type is None:
-                origin = 0.0
-            elif hasattr(date_type, 'today'):
-                origin = date_type.today()
-            else:
-                origin = date_type()
-
-        # either re-use curve
-        if callable(curve) or isinstance(curve, (int, float)):
-            curve = init_curve(curve)
-
-        # or build curve
-        else:
-            self.origin = origin
-            self.day_count = day_count
-            yf_domain = type(domain)(self._f(d) for d in domain)
-            curve = init_curve(interpolation(yf_domain, curve))
-
-        super().__init__(curve, origin=origin)
+        self.origin = origin
         self.domain = domain
         self.day_count = day_count
+
+        super().__init__(init_curve(curve), call=call, invisible=invisible)
 
     def __iter__(self):
         if not self.domain:
             return iter(super())
         return iter(self.domain)
 
-    def _f(self, x):
+    @vectorize()
+    def _f(self, x, y=None):
+        """transform arguments into real float values"""
+        if x is None:
+            return None
+        if y is None:
+            x, y = self.origin, x
         if self.day_count is None:
             # if hasattr(self.origin, 'day_count'):
             #     return self.origin.day_count(x)
-            return _day_count (self.origin, x)
-        return self.day_count(self.origin, x)
+            return _day_count (x, y)
+        return self.day_count(x, y)
+
+    @vectorize()
+    def _g(self, x, y=None):
+        """transform real float arguments into values"""
+        raise NotImplemented()

@@ -29,12 +29,11 @@ logging.getLogger(__name__).addHandler(logging.NullHandler())
 
 # todo:
 #  add sabr model
-#  add Curve.plot()
-#  add global calibration using 'lmfit'
+#  add global calibration using 'lmfit.minimize' or 'scipy.optimize.leastsq'
 
 from . import compounding  # noqa E401 E402
 from . import interpolation  # noqa E401 E402
-from .curve import generate_call_wrapper as _gcw  # noqa E401 E402
-from .api import *  # noqa E401 E402
-
-DF = _gcw('Df', function='get_discount_factor')
+from . import api  # noqa E401 E402
+from .api.wrapper import Cv, Df, Zero, Cash, Short, Price, Yield, Fx, \
+    Intensity, Marginal, Prob, Pd  # noqa E401 E402
+from .curve import init_curve  # noqa E401 E402

@@ -14,7 +14,7 @@ from bisect import bisect_left, bisect_right
 from collections import UserDict
 from math import exp, log
 
-from .repr import representation
+from .tools import representation
 
 
 class _base_interpolation(object):
@@ -110,6 +110,26 @@ class base_interpolation(UserDict):
 
     def __repr__(self):
         return representation(self, self.x_list, self.y_list)
+
+    def _op(self, other, attr):
+        new = self.__copy__()
+        if not callable(other):
+            other = constant([0.0], [other])
+        for k in new:
+            new[k] = getattr(new[k], attr)(other(k))
+        return new
+
+    def __add__(self, other):
+        return self._op(other, '__add__')
+
+    def __sub__(self, other):
+        return self._op(other, '__sub__')
+
+    def __mul__(self, other):
+        return self._op(other, '__mul__')
+
+    def __truediv__(self, other):
+        return self._op(other, '__truediv__')
 
 
 class flat(base_interpolation):

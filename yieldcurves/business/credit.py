@@ -1,17 +1,28 @@
 
-from ..curve import DomainCurve
+from .. import interpolation as _interpolation
+from ..daycount import YearFraction
+from yieldcurves.curve import CurveAdapter
 from ..interpolation import constant, linear, loglinearrate
-from .wrapper import Marginal, Prob, Pd, IntensityHz, Intensity, HazardRate, \
-    ProbPd, IntensityI
+from ..analytics.credit import Marginal, Prob, Pd, IntensityHz, Intensity, \
+    HazardRate, ProbPd, IntensityI
 
 
-class CreditCurve(DomainCurve):
+class CreditCurve(CurveAdapter):
 
     def __init__(self, domain=(), data=(), interpolation=loglinearrate,
                  origin=None, day_count=None, **__):
-        super().__init__(domain=domain, origin=origin, day_count=day_count)
-        s = DomainCurve.interpolated(domain, data, interpolation, **__)
-        self.curve = s.curve
+        domain = tuple(domain)
+
+        # build yf transformer, transform domain and build inner curve
+        yf = YearFraction(origin, day_count, domain=domain)
+        i_type = getattr(_interpolation, str(interpolation), interpolation)
+        super().__init__(i_type(yf(domain), data), pre=yf, **__)
+
+        # save properties
+        self.domain = domain
+        self.origin = origin
+        self.day_count = day_count
+        self.interpolation = getattr(i_type, '__name__', str(interpolation))
 
         self.prob = self.marginal = self.intensity = self.hazard_rate \
             = self.pd = None
@@ -42,7 +53,7 @@ class CreditCurve(DomainCurve):
         * similar to |InterestRateCurve().get_discount_factor()|
 
         """
-        start, stop = self._f(start), self._f(stop)
+        start, stop = self._pre(start), self._pre(stop)
         if isinstance(self.pd, Pd):
             return self.pd(start, stop)
         return 1. - (1. - self.pd(stop)) / (1. - self.pd(start))
@@ -73,7 +84,7 @@ class CreditCurve(DomainCurve):
         * similar to |InterestRateCurve().get_discount_factor()|
 
         """
-        start, stop = self._f(start), self._f(stop)
+        start, stop = self._pre(start), self._pre(stop)
         if isinstance(self.prob, Prob):
             return self.prob(start, stop)
         return self.prob(stop) / self.prob(start)
@@ -104,7 +115,7 @@ class CreditCurve(DomainCurve):
         * similar to |InterestRateCurve().get_discount_factor()|
 
         """
-        start, stop = self._f(start), self._f(stop)
+        start, stop = self._pre(start), self._pre(stop)
         if isinstance(self.marginal, Marginal):
             return self.marginal(start, stop)
         raise NotImplementedError()
@@ -125,7 +136,7 @@ class CreditCurve(DomainCurve):
         * similar to |InterestRateCurve().get_zero_rate()|
 
         """
-        start, stop = self._f(start), self._f(stop)
+        start, stop = self._pre(start), self._pre(stop)
         if isinstance(self.intensity, Intensity):
             return self.intensity(start, stop)
         raise NotImplementedError()
@@ -143,7 +154,7 @@ class CreditCurve(DomainCurve):
         * similar to |InterestRateCurve().get_short_rate()|
 
         """
-        start = self._f(start)
+        start = self._pre(start)
         return self.hazard_rate(start)
 
 

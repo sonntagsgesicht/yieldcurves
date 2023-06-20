@@ -1,10 +1,10 @@
 
 from regtest import RegressionTestCase
 
-from yieldcurves import ForwardPriceCurve as ForwardCurve
+from yieldcurves import YieldCurve
 
 
-class ForwardCurveRegTests(RegressionTestCase):
+class YieldCurveRegTests(RegressionTestCase):
 
     def setUp(self):
         self.domain = tuple(range(1, 10))
@@ -13,6 +13,6 @@ class ForwardCurveRegTests(RegressionTestCase):
         self.spot = self.data[-1]
 
     def test_forward(self):
-        f = ForwardCurve(self.domain, self.data, yield_curve=self.rate)
+        f = YieldCurve(self.domain, self.data, yield_curve=self.rate)
         for x in range(1, 100):
             self.assertAlmostRegressiveEqual(f(x))

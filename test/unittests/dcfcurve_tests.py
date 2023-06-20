@@ -13,9 +13,8 @@
 from unittest import TestCase
 
 from businessdate import BusinessDate, BusinessRange
-from dcf import ZeroRateCurve, CashRateCurve, ShortRateCurve
-
-from yieldcurves import RateCurve
+import dcf
+import yieldcurves as yc
 
 
 class RateCurveUnitTests(TestCase):
@@ -58,22 +57,25 @@ class RateCurveUnitTests(TestCase):
                 self.assertAlmostEqual(a, b, places=places, msg=str(x))
 
     def test_zero_rate_curve(self):
-        dcf_curve = ZeroRateCurve(self.domain, self.points, origin=self.today)
-        yc_curve = RateCurve(self.domain, self.points, origin=self.today,
-                             forward_tenor='3M')
-        self._rate_curve_test(dcf_curve, yc_curve)
+        dcf_curve = dcf.ZeroRateCurve(
+            self.domain, self.points, origin=self.today, forward_tenor='3M')
+        yc_curve = yc.ZeroRateCurve(
+            self.domain, self.points, origin=self.today, forward_tenor='3M')
+        self._rate_curve_test(dcf_curve, yc_curve, places=2)
 
     def test_cash_rate_curve(self):
-        dcf_curve = CashRateCurve(self.domain, self.points, origin=self.today)
-        yc_curve = RateCurve(self.domain, self.points, origin=self.today,
-                             frequency=4,
-                             forward_tenor='3M', curve_type='cash')
+        dcf_curve = dcf.CashRateCurve(
+            self.domain, self.points, origin=self.today, forward_tenor='3M')
+        yc_curve = yc.CashRateCurve(
+            self.domain, self.points, origin=self.today, forward_tenor='3M')
 
-        self._rate_curve_test(dcf_curve, yc_curve, 3)
+        self._rate_curve_test(dcf_curve, yc_curve, places=3)
 
     def test_short_rate_curve(self):
-        dcf_curve = ShortRateCurve(self.domain, self.points, origin=self.today)
+        dcf_curve = dcf.ShortRateCurve(
+            self.domain, self.points, origin=self.today, forward_tenor='3M')
         dcf_curve._TIME_SHIFT = '6m'
-        yc_curve = RateCurve(self.domain, self.points, origin=self.today,
-                             forward_tenor='3M', curve_type='short')
-        self._rate_curve_test(dcf_curve, yc_curve)
+        yc_curve = yc.ShortRateCurve(
+            self.domain, self.points, origin=self.today, forward_tenor='3M')
+
+        self._rate_curve_test(dcf_curve, yc_curve, places=2)

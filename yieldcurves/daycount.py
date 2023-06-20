@@ -9,6 +9,7 @@
 # Website:  https://github.com/sonntagsgesicht/yieldcurves
 # License:  Apache License 2.0 (see LICENSE file)
 
+from vectorizeit import vectorize
 
 DAYS_IN_YEAR = 365.25
 
@@ -26,7 +27,7 @@ def day_count(start, end):
     $$\tau(t_s, t_e) = \frac{t_e-t_s}{365.25}$$
     as an average year has nearly $365.25$ days.
 
-    Since different date packages have differnet concepts to derive
+    Since different date packages have different concepts to derive
     the number of days between two dates, **day_count** tries to adopt
     at least some of them. As there are:
 
@@ -54,3 +55,46 @@ def day_count(start, end):
         return float(diff.days) / DAYS_IN_YEAR
     # use year fraction directly
     return float(diff)
+
+
+_day_count = day_count
+
+
+class YearFraction:
+
+    def __init__(self, origin=None, day_count=None, domain=(),
+                 date_type=float):
+        # gather origin
+        if origin is None:
+            if domain:
+                origin = domain[0]
+            elif hasattr(date_type, 'today'):
+                origin = date_type.today()
+            else:
+                origin = date_type()
+        self.origin = origin
+
+        # gather day_count
+        if day_count is None:
+            day_count = getattr(origin, 'day_count', None) or _day_count
+        self.day_count = day_count
+
+        self._inv = dict((self(d), d) for d in domain)
+
+    @vectorize(keys=['x'])
+    def __call__(self, x, y=None, *_, **__):
+        if y is None:
+            if x is None:
+                return None
+            x, y = self.origin, x
+        return self.day_count(x, y)
+
+    @vectorize(keys=['x'])
+    def inv(self, x, y=None, *_, **__):
+        if y is None:
+            if x is None:
+                return None
+            if x in self._inv:
+                return self._inv[x]
+            x, y = self.origin, x
+        raise NotImplementedError()

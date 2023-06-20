@@ -14,7 +14,7 @@ from bisect import bisect_left, bisect_right
 from collections import UserDict
 from math import exp, log
 
-from .tools import representation
+from .tools.repr import representation
 
 
 class _base_interpolation(object):
@@ -625,10 +625,10 @@ class base_extrapolation:
 class extrapolation(base_extrapolation):
 
     def __init__(self, x_list, y_list, mid=linear, left=None, right=None):
-        m = mid(x_list, y_list)
-        l = left(x_list, y_list)
-        r = right(x_list, y_list)
-        super(extrapolation, self).__init__(m, l, r)
+        m_ = mid(x_list, y_list)
+        l_ = left(x_list, y_list)
+        r_ = right(x_list, y_list)
+        super(extrapolation, self).__init__(m_, l_, r_)
 
 
 class waterfall_extrapolation(base_extrapolation):

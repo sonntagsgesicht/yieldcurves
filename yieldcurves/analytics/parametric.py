@@ -4,7 +4,7 @@ from collections import UserDict
 from vectorizeit import vectorize
 
 
-from .tools import representation
+from ..tools.repr import representation
 
 
 class NelsonSiegelSvensson(UserDict):
@@ -47,8 +47,8 @@ class NelsonSiegelSvensson(UserDict):
     def download(self):
         url = 'https://sdw-wsrest.ecb.europa.eu/' \
               'service/data/YC/B.U2.EUR.4F.G_N_A+G_N_C.SV_C_YM.?' \
-              'lastNObservations=1&format=csvdata'
-        file = 'data.cvs'
+              'lastNObservations=1&format=csvdata'  # noqa F841
+        file = 'data.cvs'  # noqa F841
         # todo parse ecb parameter
         self.data = {
             'beta0': 1.0138959988,

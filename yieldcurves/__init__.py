@@ -33,7 +33,15 @@ logging.getLogger(__name__).addHandler(logging.NullHandler())
 
 from . import compounding  # noqa E401 E402
 from . import interpolation  # noqa E401 E402
-from . import api  # noqa E401 E402
-from .api.wrapper import Cv, Df, Zero, Cash, Short, Price, Yield, Fx, \
-    Intensity, Marginal, Prob, Pd  # noqa E401 E402
+from . import analytics  # noqa E401 E402
 from .curve import init_curve  # noqa E401 E402
+from .analytics.rate import Cv, Df, Zero, Cash, Short  # noqa E401 E402
+from .analytics.price import Price, Yield, Fx  # noqa E401 E402
+from .analytics.credit import Intensity, Marginal, Prob, Pd  # noqa E401 E402
+from .analytics.parametric import NelsonSiegelSvensson  # noqa E401 E402
+from .business.price import PriceCurve, YieldCurve, FxCurve  # noqa E401 E402
+from .business.rate import ZeroRateCurve, ShortRateCurve, \
+    CashRateCurve, DiscountFactorCurve  # noqa E401 E402
+from .business.credit import DefaultProbabilityCurve, \
+    SurvivalProbabilityCurve, MarginalSurvivalProbabilityCurve, \
+    FlatIntensityCurve, HazardRateCurve  # noqa E401 E402

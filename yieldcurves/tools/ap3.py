@@ -37,29 +37,29 @@ __all__ = ['markers', 'ACanvas', 'AData', 'AFigure', 'plot',
 
 Number = Union[int, float]
 
-markers = { '-' : u'None' ,     # solid line style
-            ',': u'\u2219',     # point marker
-            '.': u'\u2218',     # pixel marker
-            '.f': u'\u2218',    # pixel marker
-            'o': u'\u25CB',     # circle marker
-            'of': u'\u25CF',    # circle marker
-            'v': u'\u25BD',     # triangle_down marker
-            'vf': u'\u25BC',    # filler triangle_down marker
-            '^': u'\u25B3',     # triangle_up marker
-            '^f': u'\u25B2',    # filled triangle_up marker
-            '<':  u'\u25C1',    # triangle_left marker
-            '<f': u'\u25C0',    # filled triangle_left marker
-            '>': u'\u25B7',     # triangle_right marker
-            '>f': u'\u25B6',    # filled triangle_right marker
-            's': u'\u25FD',     # square marker
-            'sf': u'\u25FC',    # square marker
-            '*': u'\u2606',     # star marker
-            '*f': u'\u2605',    # star marker
-            '+': u'\u271A',     # plus marker
-            'x': u'\u274C',     # x marker
-            'd':  u'\u25C7',    # diamond marker
-            'df':  u'\u25C6'    # filled diamond marker
-            }
+markers = {'-': u'None',  # solid line style
+           ',': u'\u2219',  # point marker
+           '.': u'\u2218',  # pixel marker
+           '.f': u'\u2218',  # pixel marker
+           'o': u'\u25CB',  # circle marker
+           'of': u'\u25CF',  # circle marker
+           'v': u'\u25BD',  # triangle_down marker
+           'vf': u'\u25BC',  # filler triangle_down marker
+           '^': u'\u25B3',  # triangle_up marker
+           '^f': u'\u25B2',  # filled triangle_up marker
+           '<': u'\u25C1',  # triangle_left marker
+           '<f': u'\u25C0',  # filled triangle_left marker
+           '>': u'\u25B7',  # triangle_right marker
+           '>f': u'\u25B6',  # filled triangle_right marker
+           's': u'\u25FD',  # square marker
+           'sf': u'\u25FC',  # square marker
+           '*': u'\u2606',  # star marker
+           '*f': u'\u2605',  # star marker
+           '+': u'\u271A',  # plus marker
+           'x': u'\u274C',  # x marker
+           'd': u'\u25C7',  # diamond marker
+           'df': u'\u25C6'  # filled diamond marker
+           }
 
 
 def _sign(x: Number) -> int:
@@ -75,9 +75,9 @@ def _sign(x: Number) -> int:
         -1, 0 or 1 if negative, null or positive
     """
 
-    if (x > 0):
+    if x > 0:
         return 1
-    elif (x == 0):
+    elif x == 0:
         return 0
     else:
         return -1
@@ -94,7 +94,7 @@ def _transpose(mat: List[List]) -> List[List]:
     r: list of list, 2d list like
         transposed matrice
     """
-    r = [ [x[i] for x in mat] for i in range(len(mat[0])) ]
+    r = [[x[i] for x in mat] for i in range(len(mat[0]))]
     return r
 
 
@@ -110,12 +110,13 @@ def _y_reverse(mat: List[List]) -> List[List]:
     r: list of lists
         the reversed version
     """
-    r = [ list(reversed(mat_i)) for mat_i in mat ]
+    r = [list(reversed(mat_i)) for mat_i in mat]
     return r
 
 
 class AData(object):
     """ Data container for ascii AFigure """
+
     def __init__(self, x: Iterable, y: Iterable or Callable,
                  marker: str = '_.',
                  plot_slope: bool = True):
@@ -129,7 +130,8 @@ class AData(object):
         marker: str
             marker for the data.
             if None or empty, the curve will be plotted
-            if the first character of the marker is '_' then unicode markers will be called:
+            if the first character of the marker is '_'
+            then unicode markers will be called:
 
                 marker      repr                description
                ========  ===========   =============================
@@ -202,6 +204,7 @@ class ACanvas(object):
 
     In general there is no need to access the canvas directly
     """
+
     def __init__(self,
                  shape: Sequence[Number] = None,
                  margins: Sequence[Number] = None,
@@ -345,13 +348,14 @@ class ACanvas(object):
     def y_mod(self) -> Number:
         return (self.max_y - self.min_y) * self.y_margin
 
-    def extent(self, margin_factor: Number = None) -> Tuple[Number, Number, Number, Number]:
+    def extent(self, margin_factor: Number = None) -> \
+            Tuple[Number, Number, Number, Number]:
         margin_factor = margin_factor or self.margin_factor
         min_x = (self.min_x + self.x_mod * margin_factor)
         max_x = (self.max_x - self.x_mod * margin_factor)
         min_y = (self.min_y + self.y_mod * margin_factor)
         max_y = (self.max_y - self.y_mod * margin_factor)
-        return (min_x, max_x, min_y, max_y)
+        return min_x, max_x, min_y, max_y
 
     def extent_str(self, margin: Number = None) -> Tuple[str, str, str, str]:
 
@@ -368,7 +372,11 @@ class ACanvas(object):
 
         xfmt = self.x_str()
         yfmt = self.y_str()
-        return transform(e[0], xfmt), transform(e[1], xfmt), transform(e[2], yfmt), transform(e[3], yfmt)
+        a = transform(e[0], xfmt)
+        b = transform(e[1], xfmt)
+        c = transform(e[2], yfmt)
+        d = transform(e[3], yfmt)
+        return a, b, c, d
 
     def x_str(self) -> str:
         if self.x_size < 16:
@@ -388,17 +396,19 @@ class ACanvas(object):
             y_str = "%+g"
         return y_str
 
-    def coords_inside_buffer(self, x: Number, y: Number)-> bool:
+    def coords_inside_buffer(self, x: Number, y: Number) -> bool:
         return (0 <= x < self.x_size) and (0 < y < self.y_size)
 
-    def coords_inside_data(self, x: Number, y: Number)-> bool:
+    def coords_inside_data(self, x: Number, y: Number) -> bool:
         """ return if (x,y) covered by the data box
         x, y: float
             coordinates to test
         """
-        return (self.min_x <= x < self.max_x) and (self.min_y <= y < self.max_y)
+        return (self.min_x <= x < self.max_x) and (
+                    self.min_y <= y < self.max_y)
 
-    def _clip_line(self, line_pt_1: Sequence, line_pt_2: Sequence) -> Tuple[Sequence, Sequence]:
+    def _clip_line(self, line_pt_1: Sequence, line_pt_2: Sequence) -> \
+            Tuple[Sequence, Sequence]:
         """ clip a line to the canvas """
 
         e = self.extent()
@@ -408,17 +418,17 @@ class ACanvas(object):
         y_max = max(line_pt_1[1], line_pt_2[1])
 
         if line_pt_1[0] == line_pt_2[0]:
-            return ( ( line_pt_1[0], max(y_min, e[1]) ),
-                     ( line_pt_1[0], min(y_max, e[3])   ))
+            return ((line_pt_1[0], max(y_min, e[1])),
+                    (line_pt_1[0], min(y_max, e[3])))
 
         if line_pt_1[1] == line_pt_2[1]:
-            return ( ( max(x_min, e[0]), line_pt_1[1] ),
-                     ( min(x_max, e[2]), line_pt_1[1]   ))
+            return ((max(x_min, e[0]), line_pt_1[1]),
+                    (min(x_max, e[2]), line_pt_1[1]))
 
-        if ( (e[0] <= line_pt_1[0] < e[2]) and
-             (e[1] <= line_pt_1[1] < e[3]) and
-             (e[0] <= line_pt_2[0] < e[2]) and
-             (e[1] <= line_pt_2[1] < e[3]) ):
+        if ((e[0] <= line_pt_1[0] < e[2]) and
+                (e[1] <= line_pt_1[1] < e[3]) and
+                (e[0] <= line_pt_2[0] < e[2]) and
+                (e[1] <= line_pt_2[1] < e[3])):
             return line_pt_1, line_pt_2
 
         ts = [0.0,
@@ -433,9 +443,10 @@ class ACanvas(object):
         if (ts[2] < 0) or (ts[2] >= 1) or (ts[3] < 0) or (ts[2] >= 1):
             return None
 
-        result = [(pt_1 + t * (pt_2 - pt_1)) for t in (ts[2], ts[3]) for (pt_1, pt_2) in zip(line_pt_1, line_pt_2)]
+        result = [(pt_1 + t * (pt_2 - pt_1)) for t in (ts[2], ts[3]) for
+                  (pt_1, pt_2) in zip(line_pt_1, line_pt_2)]
 
-        return ( result[:2], result[2:] )
+        return result[:2], result[2:]
 
 
 class AFigure(object):
@@ -460,15 +471,17 @@ class AFigure(object):
         self.y_axis_symbol = u'\u2502'  # "|"
         self.data = []
 
-    def xlim(self, vmin: Number = None, vmax: Number = None) -> Tuple[Number, Number]:
+    def xlim(self, vmin: Number = None, vmax: Number = None) -> \
+            Tuple[Number, Number]:
         return self.canvas.xlim(vmin, vmax)
 
-    def ylim(self, vmin: Number = None, vmax: Number = None) -> Tuple[Number, Number]:
+    def ylim(self, vmin: Number = None, vmax: Number = None) -> \
+            Tuple[Number, Number]:
         return self.canvas.ylim(vmin, vmax)
 
-    def get_coord(self, val: Number, min: Number, step: Number,
+    def get_coord(self, val: Number, vmin: Number, step: Number,
                   limits: Sequence[Number] = None) -> Number:
-        result = int((val - min) / step)
+        result = int((val - vmin) / step)
         if limits is not None:
             if result <= limits[0]:
                 result = limits[0]
@@ -494,14 +507,14 @@ class AFigure(object):
         self.output_buffer[zero_x][zero_y] = self.tickSymbols  # "+"
 
     def _get_symbol_by_slope(self, slope: Number, default_symbol: str) -> str:
-        """ Return a line oriented directed approximatively along the slope value """
+        """Return a line oriented directed approximatively along the slope"""
         if slope > _math.tan(3 * _math.pi / 8):
             draw_symbol = "|"
         elif _math.tan(_math.pi / 8) < slope < _math.tan(3 * _math.pi / 8):
             draw_symbol = u'\u27cb'  # "/"
         elif abs(slope) < _math.tan(_math.pi / 8):
             draw_symbol = "-"
-        elif slope < _math.tan(-_math.pi / 8) and slope > _math.tan(-3 * _math.pi / 8):
+        elif _math.tan(-3 * _math.pi / 8) < slope < _math.tan(-_math.pi / 8):
             draw_symbol = u'\u27CD'  # "\\"
         elif slope < _math.tan(-3 * _math.pi / 8):
             draw_symbol = "|"
@@ -516,13 +529,23 @@ class AFigure(object):
 
         act_min_x, act_max_x, act_min_y, act_max_y = self.canvas.extent()
 
-        min_x_coord = self.get_coord(act_min_x, self.canvas.min_x, self.canvas.x_step, limits=[0, self.canvas.x_size])
-        max_x_coord = self.get_coord(act_max_x, self.canvas.min_x, self.canvas.x_step, limits=[0, self.canvas.x_size])
-        min_y_coord = self.get_coord(act_min_y, self.canvas.min_y, self.canvas.y_step, limits=[1, self.canvas.y_size])
-        max_y_coord = self.get_coord(act_max_y, self.canvas.min_y, self.canvas.y_step, limits=[1, self.canvas.y_size])
+        min_x_coord = self.get_coord(act_min_x, self.canvas.min_x,
+                                     self.canvas.x_step,
+                                     limits=[0, self.canvas.x_size])
+        max_x_coord = self.get_coord(act_max_x, self.canvas.min_x,
+                                     self.canvas.x_step,
+                                     limits=[0, self.canvas.x_size])
+        min_y_coord = self.get_coord(act_min_y, self.canvas.min_y,
+                                     self.canvas.y_step,
+                                     limits=[1, self.canvas.y_size])
+        max_y_coord = self.get_coord(act_max_y, self.canvas.min_y,
+                                     self.canvas.y_step,
+                                     limits=[1, self.canvas.y_size])
 
-        x_zero_coord = self.get_coord(0, self.canvas.min_x, self.canvas.x_step, limits=[0, self.canvas.x_size])
-        y_zero_coord = self.get_coord(0, self.canvas.min_y, self.canvas.y_step, limits=[1, self.canvas.y_size])
+        x_zero_coord = self.get_coord(0, self.canvas.min_x, self.canvas.x_step,
+                                      limits=[0, self.canvas.x_size])
+        y_zero_coord = self.get_coord(0, self.canvas.min_y, self.canvas.y_step,
+                                      limits=[1, self.canvas.y_size])
 
         # jph: 2023-06-02
         # self.output_buffer[x_zero_coord][min_y_coord] = self.tickSymbols
@@ -535,7 +558,8 @@ class AFigure(object):
             for i, c in enumerate(min_x_str):
                 self.output_buffer[min_x_coord + i + 1][y_zero_coord - 1] = c
             for i, c in enumerate(max_x_str):
-                self.output_buffer[max_x_coord + i - len(max_x_str)][y_zero_coord - 1] = c
+                self.output_buffer[max_x_coord + i - len(max_x_str)][
+                    y_zero_coord - 1] = c
 
         if self.canvas.y_str() is not None:
             for i, c in enumerate(max_y_str):
@@ -564,15 +588,18 @@ class AFigure(object):
         if (x0, y0) == (x1, y1):
             return True
 
-        #x_zero_coord = self.get_coord(0, self.canvas.min_x, self.canvas.x_step)
-        y_zero_coord = self.get_coord(0, self.canvas.min_y, self.canvas.y_step, limits=[1, self.canvas.y_size])
+        # x_zero_coord =
+        #   self.get_coord(0, self.canvas.min_x, self.canvas.x_step)
+        y_zero_coord = self.get_coord(0, self.canvas.min_y, self.canvas.y_step,
+                                      limits=[1, self.canvas.y_size])
 
         if start[0] - end[0] == 0:
             draw_symbol = u"|"
         elif start[1] - end[1] == 0:
             draw_symbol = '-'
         else:
-            slope = (1.0 / self.canvas.ratio) * (end[1] - start[1]) / (end[0] - start[0])
+            slope = (1.0 / self.canvas.ratio) * (end[1] - start[1]) / (
+                        end[0] - start[0])
             draw_symbol = self._get_symbol_by_slope(slope, data.marker)
 
         dx = x1 - x0
@@ -584,7 +611,8 @@ class AFigure(object):
                 cur_draw_symbol = draw_symbol
                 x = i * s
                 cur_y = int(y0 + slope * x)
-                if (self.draw_axes) and (cur_y == y_zero_coord) and (draw_symbol == self.x_axis_symbol):
+                if self.draw_axes and (cur_y == y_zero_coord) and (
+                        draw_symbol == self.x_axis_symbol):
                     cur_draw_symbol = "-"
                 self.output_buffer[x0 + x][cur_y] = cur_draw_symbol
         else:
@@ -594,16 +622,19 @@ class AFigure(object):
                 y = i * s
                 cur_draw_symbol = draw_symbol
                 cur_y = y0 + y
-                if (self.draw_axes) and (cur_y == y_zero_coord) and (draw_symbol == self.x_axis_symbol):
+                if self.draw_axes \
+                        and (cur_y == y_zero_coord) \
+                        and (draw_symbol == self.x_axis_symbol):
                     cur_draw_symbol = "-"
-                self.output_buffer[int(x0 + slope * y)][cur_y] = cur_draw_symbol
+                self.output_buffer[int(x0 + slope * y)][
+                    cur_y] = cur_draw_symbol
 
         return False
 
     def _plot_data_with_slope(self, data: AData) -> None:
         xy = list(zip(data.x, data.y))
 
-        #sort according to the x coord
+        # sort according to the x coord
         xy.sort(key=lambda c: c[0])
         prev_p = xy[0]
         e_xy = enumerate(xy)
@@ -623,13 +654,17 @@ class AFigure(object):
                     slope = (1.0 / self.canvas.ratio) * (ny - py) / (nx - px)
                     draw_symbol = self._get_symbol_by_slope(slope, draw_symbol)
 
-                x_coord = self.get_coord(xi, self.canvas.min_x, self.canvas.x_step)
-                y_coord = self.get_coord(yi, self.canvas.min_y, self.canvas.y_step)
+                x_coord = self.get_coord(xi, self.canvas.min_x,
+                                         self.canvas.x_step)
+                y_coord = self.get_coord(yi, self.canvas.min_y,
+                                         self.canvas.y_step)
 
                 if self.canvas.coords_inside_buffer(x_coord, y_coord):
-                    y0_coord = self.get_coord(0, self.canvas.min_y, self.canvas.y_step)
+                    y0_coord = self.get_coord(0, self.canvas.min_y,
+                                              self.canvas.y_step)
                     if self.draw_axes:
-                        if (y_coord == y0_coord) and (draw_symbol == u"\u23bc"):
+                        if (y_coord == y0_coord) and (
+                                draw_symbol == u"\u23bc"):
                             draw_symbol = "="
                     self.output_buffer[x_coord][y_coord] = draw_symbol
 
@@ -639,8 +674,10 @@ class AFigure(object):
         else:
             for x, y in zip(data.x, data.y):
                 if self.canvas.coords_inside_data(x, y):
-                    x_coord = self.get_coord(x, self.canvas.min_x, self.canvas.x_step)
-                    y_coord = self.get_coord(y, self.canvas.min_y, self.canvas.y_step)
+                    x_coord = self.get_coord(x, self.canvas.min_x,
+                                             self.canvas.x_step)
+                    y_coord = self.get_coord(y, self.canvas.min_y,
+                                             self.canvas.y_step)
 
                     if self.canvas.coords_inside_buffer(x_coord, y_coord):
                         self.output_buffer[x_coord][y_coord] = data.marker
@@ -655,8 +692,10 @@ class AFigure(object):
                 min_max_y.extend(ek[2:])
 
             e = 0.05
-            self.canvas.xlim(min(min_max_x)*(1-e), max(min_max_x)*(1+e))
-            self.canvas.ylim(min(min_max_y)*(1-e), max(min_max_y)*(1+e))
+            self.canvas.xlim(min(min_max_x) * (1 - e),
+                             max(min_max_x) * (1 + e))
+            self.canvas.ylim(min(min_max_y) * (1 - e),
+                             max(min_max_y) * (1 + e))
 
     def append_data(self, data: AData) -> None:
         self.data.append(data)
@@ -696,7 +735,8 @@ class AFigure(object):
         return self.draw()
 
     def draw(self) -> str:
-        self.output_buffer = [[" "] * self.canvas.y_size for i in range(self.canvas.x_size)]
+        self.output_buffer = [
+            [" "] * self.canvas.y_size for _ in range(self.canvas.x_size)]
         if self.draw_axes:
             self._draw_axes()
 
@@ -721,7 +761,6 @@ def plot(x,
          ylim=None,
          **kwargs
          ):
-
     flags = {'shape': shape,
              'draw_axes': draw_axes,
              'plot_labels': plot_labels,

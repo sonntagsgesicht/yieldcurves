@@ -14,7 +14,7 @@ def representation(obj, *args, rstyle=True, **kwargs):
     r = repr if rstyle else _repr.repr
     inner = list(map(r, args))
     inner += [str(k) + '=' + r(v)
-              for k, v in kwargs.items() if v is not None]
+              for k, v in kwargs.items() if v is not None and r(v)]
     return name + '(' + ', '.join(inner) + ')'
 
 
@@ -46,7 +46,8 @@ def attr(x, *args, protected=False):
     else:
         _kwargs = getattr(x, '__dict__', {})
     if not protected:
-        _kwargs = dict((k, v) for k, v in _kwargs.items() if not k.startswith('_'))
+        _kwargs = dict((k, v) for k, v in _kwargs.items()
+                       if not k.startswith('_'))
     _args = [_kwargs.pop(i) for i in args if i in _kwargs]
     return _args, _kwargs
 
@@ -65,14 +66,3 @@ def params(x, *args):
 def repr_attr(x, *args, rstyle=True):
     _args, _kwargs = attr(x, *args)
     return representation(x, *_args, **_kwargs, rstyle=rstyle)
-
-
-def repr_algebra(x, m=(), d=(), a=(), s=(), rstyle=True):
-    # return x * m*...*m / d/.../d + a+...+a - s-...-s
-    r = repr if rstyle else str
-    x = r(x)
-    x += ' * ' + ' * '.join(map(r, m)) if m else ''
-    x += ' / ' + ' / '.join(map(r, d)) if d else ''
-    x += ' + ' + ' + '.join(map(r, a)) if a else ''
-    x += ' - ' + ' - '.join(map(r, s)) if s else ''
-    return x

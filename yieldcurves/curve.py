@@ -1,30 +1,62 @@
+from typing import Union, Callable, Iterable
 from math import prod
 from vectorizeit import vectorize
 
-from .tools import attr, repr_attr, repr_algebra, ascii_plot
+from yieldcurves.tools.repr import attr, repr_attr
 
-from .daycount import day_count as _day_count
-from .interpolation import linear
-from . import interpolation as _interpolation
-
+CurveValue = Union[int, float]
+Curve = Union[CurveValue, Callable]
 
 # --- base curve classes ---
 
 
-class CurveWrapper:
+class CurveAdapter:
 
-    def __init__(self, curve, call=None, invisible=None):
+    def __init__(self,
+                 curve: Curve,
+                 call: Union[str, Callable] = None,
+                 invisible: bool = None,
+                 pre: Callable = None,
+                 inv: Callable = None):
+        r"""Wrapper class for a curve (i.e. callable)
+
+        :param curve: inner curve object $\phi: X \to Y$ to wrap around.
+            This argument can be a single value $v$ which results in constant
+            function $\phi(x)=v$.
+        :param call: name of method of to be invoked when wrapper is invoked
+            via **__call__**
+            (optional, default is **__call__**)
+        :param invisible: boolean flag to control string representation.
+            If **True** both **str** and **repr** is forwarded to **curve**.
+            (optional, default is **False**)
+        :param pre: argument transformation function $\theta$
+            performed prior **curve** is called,
+            i.e. $\phi(\theta(x))$.
+            (optional, default is $\theta(x) = id(x) = x$)
+        :param inv: inverse $\theta^{-1}$  of argument transformation
+            function $\theta$. $\theta^{-1}$ is performed to transform
+            **curve** parameter arguments is called,
+            i.e. $\theta^{-1}(\\theta(x)))$.
+            (optional, default is $\theta^{-1}(x) = id(x) = x$)
+        """
         self.curve = curve
-        self.call = call
+        self.call = call or getattr(self.__class__, 'call', None)
         self.invisible = invisible
+        self.pre = pre
+        self.inv = inv
+
+        if invisible is None and not callable(curve):
+            # view constant curve as a constant value
+            self.invisible = True
+
+        self._pre = pre or (lambda _: _)
+        self._inv = pre or (lambda _: _)
 
     def __copy__(self):
-        if self.invisible:
-            if hasattr(self.curve, '__copy__'):
-                return self.curve.__copy__()
-            return self.curve.__class__(self.curve)
-        args, kwargs = attr(self, 'curve')
-        return self.__class__(*args, **kwargs)
+        _, kwargs = attr(self)
+        if hasattr(self.curve, '__copy__'):
+            kwargs['curve'] = self.curve.__copy__()
+        return self.__class__(**kwargs)
 
     def __str__(self):
         if self.invisible:
@@ -39,120 +71,124 @@ class CurveWrapper:
     def __bool__(self):
         return bool(self.curve)
 
-    def __getitem__(self, item):
-        return self.curve[self._f(item)]
-
-    def __setitem__(self, key, value):
-        self.curve[self._f(key)] = value
-
-    def __delitem__(self, key):
-        del self.curve[self._f(key)]
-
-    def __iter__(self):
-        return iter(map(self._g, self.curve))
-
-    def __contains__(self, item):
-        return self._f(item) in self.curve
-
-    def keys(self):
-        return self.curve.keys()
-
-    def values(self):
-        return self.curve.values()
-
-    def items(self):
-        return self.curve.items()
-
-    def pop(self, item):
-        return self.pop(item)
-
-    def update(self, data):
-        return self.curve.update(data)
+    def __eq__(self, other):
+        if isinstance(other, self.__class__):
+            return self.curve == other.curve
+        return False
 
     @vectorize()
     def __call__(self, *_, **__):
-        _ = tuple(self._f(v) for v in _)
-        __ = dict((k, self._f(v)) for k, v in __.items())
-
-        if self.call is None:
-            r = self.curve(*_, **__)
-        elif callable(self.call):
-            r = self.call(self.curve, *_, **__)
-        else:
-            r = getattr(self.curve, self.call)(*_, **__)
-        return r
-
-    @vectorize()
-    def _f(self, x, y=None):
-        """transform arguments into real float values"""
-        if x is None:
-            return None
-        if y is None:
-            return x
-        return y - x
-
-    @vectorize()
-    def _g(self, x, y=None):
-        """transform real float arguments into values"""
-        if x is None:
-            return None
-        if y is None:
-            return x
-        return x + y
-
-    def plot(self, x=()):
-        if not x:
-            x = [0.01 * i for i in range(100)]
-        ascii_plot(x, self)
-
-
-class ConstantCurve(CurveWrapper):
-
-    def __init__(self, curve=0.0):
-        super().__init__(curve, invisible=True)
+        _ = tuple(self._pre(x) for x in _)
+        __ = dict((self._pre(x), v) for x, v in __.items())
+        if callable(self.call):
+            return self.call(self.curve, *_, **__)
+        _attr = getattr(self.curve, str(self.call), self.curve)
+        if callable(_attr):
+            return _attr(*_, **__)
+        return _attr
 
     def __float__(self):
-        return float(self.curve)
-
-    def __eq__(self, other):
-        return other == float(self.curve)
+        #
+        return float(self())
 
     def __getitem__(self, item):
-        return self.curve
+        if hasattr(self.curve, '__getitem__'):
+            return self.curve.__getitem__(self._pre(item))
 
     def __setitem__(self, key, value):
-        self.curve = value
+        if hasattr(self.curve, '__setitem__'):
+            return self.curve.__setitem__(self._pre(key), value)
 
     def __delitem__(self, key):
-        self.curve = 0.0
+        if hasattr(self.curve, '__delitem__'):
+            return self.curve.__delitem__(self._pre(key))
 
     def __iter__(self):
-        return iter([None])
+        if hasattr(self.curve, '__iter__'):
+            return iter(map(self._inv, self.curve.__iter__()))
+        return iter(tuple())
 
-    @vectorize()
-    def __call__(self, *_, **__):
-        return self.curve
+    def __len__(self):
+        if hasattr(self.curve, '__len__'):
+            return self.curve.__len__()
+        return 0
+
+    def __contains__(self, item):
+        return self._pre(item) in self.curve
+
+    def keys(self):
+        if hasattr(self.curve, 'keys'):
+            return iter(map(self._inv, self.curve.keys()))
+        return ()
+
+    def values(self):
+        if hasattr(self.curve, 'values'):
+            return self.curve.values()
+        return ()
+
+    def items(self):
+        if hasattr(self.curve, 'items'):
+            return self.curve.items()
+        return ()
+
+    def pop(self, item):
+        if hasattr(self.curve, 'pop'):
+            return self.curve.pop(self._pre(item))
+
+    def update(self, data):
+        if hasattr(self.curve, 'update'):
+            data = dict((self._pre(k), v) for k, v in data.items())
+            return self.curve.update(data)
+
+    def get(self, item, default=None):
+        if hasattr(self.curve, 'get'):
+            return self.curve.get(item, default)
 
 
-class CurveAlgebra(CurveWrapper):
+class CurveAlgebra(CurveAdapter):
     """algebraic operations on curves
 
     (c1 + ... + cn)
     * m1 * ... * mk / d1 / ... / dl
     + a1 + ... at - s1 - ... - sr"""
 
-    def __init__(self, curve, add=(), sub=(), mul=(), div=(),
-                 spread=None, leverage=None, inplace=False,
-                 call=None, invisible=False):
+    def __init__(self,
+                 curve: Union[Curve, CurveAdapter],
+                 add: Iterable[Union[Curve, CurveAdapter]] = (),
+                 sub: Iterable[Union[Curve, CurveAdapter]] = (),
+                 mul: Iterable[Union[Curve, CurveAdapter]] = (),
+                 div: Iterable[Union[Curve, CurveAdapter]] = (),
+                 spread: CurveValue = None,
+                 leverage: CurveValue = None,
+                 inplace: bool = False,
+                 call: Union[str, Callable] = None,
+                 invisible: bool = False,
+                 pre: Callable = None,
+                 inv: Callable = None):
+        """
+
+        :param curve:
+        :param add:
+        :param sub:
+        :param mul:
+        :param div:
+        :param spread:
+        :param leverage:
+        :param inplace:
+        :param call:
+        :param invisible:
+        :param pre:
+        :param inv:
+        """
         self._inplace = inplace
 
         if isinstance(curve, CurveAlgebra):
             spread = curve.spread if spread is None else spread
             leverage = curve.leverage if leverage is None else leverage
-            add.extend(curve.add)
-            sub.extend(curve.sub)
-            mul.extend(curve.mul)
-            div.extend(curve.div)
+            add = list(add) + curve.add
+            sub = list(sub) + curve.sub
+            mul = list(mul) + curve.mul
+            div = list(div) + curve.div
             curve = curve.curve
 
         self.spread = spread
@@ -162,7 +198,9 @@ class CurveAlgebra(CurveWrapper):
         self.mul = [init_curve(m) for m in mul]
         self.div = [init_curve(d) for d in div]
 
-        super().__init__(curve, call=call, invisible=invisible)
+        curve = init_curve(curve)
+        super().__init__(curve, call=call, invisible=invisible,
+                         pre=pre, inv=inv)
 
     @vectorize()
     def __call__(self, *_, **__):
@@ -213,110 +251,33 @@ class CurveAlgebra(CurveWrapper):
         return curve
 
     def __str__(self):
-        return repr_algebra(
-            self.curve, self.mul, self.div, self.add, self.sub, rstyle=False)
+        # return x * m*...*m / d/.../d + a+...+a - s-...-s
+        x = str(self.curve)
+        x += ' * ' + ' * '.join(map(str, self.mul)) if self.mul else ''
+        x += ' / ' + ' / '.join(map(str, self.div)) if self.div else ''
+        x += ' + ' + ' + '.join(map(str, self.add)) if self.add else ''
+        x += ' - ' + ' - '.join(map(str, self.sub)) if self.sub else ''
+        return x
 
     def __repr__(self):
-        return repr_algebra(self.curve, self.mul, self.div, self.add, self.sub)
+        # return x * m*...*m / d/.../d + a+...+a - s-...-s
+        x = repr(self.curve)
+        x += ' * ' + ' * '.join(map(repr, self.mul)) if self.mul else ''
+        x += ' / ' + ' / '.join(map(repr, self.div)) if self.div else ''
+        x += ' + ' + ' + '.join(map(repr, self.add)) if self.add else ''
+        x += ' - ' + ' - '.join(map(repr, self.sub)) if self.sub else ''
+        return x
 
 
 # --- curve_wrapper builder functions ---
 
 
-def init_curve(curve):
-    if isinstance(curve, (int, float)):
-        curve = ConstantCurve(curve)
-    if isinstance(curve, CurveWrapper):
+def init_curve(curve: Curve):
+    if isinstance(curve, CurveAdapter):
         return curve
-    return CurveWrapper(curve, invisible=True)
+    return CurveAdapter(curve, invisible=True)
 
 
-def call_wrapper(name, function=None):
+def call_wrapper_builder(name: str, function: str = None) -> type:
     """generate call_wrapper subtypes by names"""
-    return type(name, (CurveWrapper,), {'call': function or name})
-
-
-def interpolation_builder(x_list, y_list, interpolation, **__):
-    # gather interpolation
-    if isinstance(interpolation, str):
-        i_type = getattr(_interpolation, interpolation)
-    else:
-        i_type = interpolation
-        interpolation = getattr(i_type, '__name__', str(i_type))
-    new = CurveWrapper(i_type(x_list, y_list, **__), invisible=True)
-    new.interpolation = interpolation
-    return new
-
-
-# --- DomainCurve class ---
-
-
-class DomainCurve(CurveWrapper):
-
-    date_type = float
-
-    @classmethod
-    def interpolated(cls, domain=(), data=(), interpolation=linear,
-                     origin=None, day_count=None, **__):
-        # init instance
-        self = cls(curve=(), domain=domain, origin=origin, day_count=day_count)
-        # transform domain and build inner curve
-        f_domain = tuple(self._f(d) for d in self.domain)
-        self.curve = interpolation_builder(f_domain, data, interpolation, **__)
-        return self
-
-    def __init__(self, curve=(), domain=(), origin=None, day_count=None,
-                 call=None, invisible=False):
-
-        domain = tuple(domain)
-
-        # gather origin
-        if origin is None:
-            if domain:
-                origin = domain[0]
-            else:
-                date_type = self.__class__.date_type
-                if hasattr(date_type, 'today'):
-                    origin = date_type.today()
-                else:
-                    origin = date_type()
-
-        self.origin = origin
-        self.domain = domain
-        self.day_count = day_count
-
-        # re-use curve
-        if isinstance(curve, DomainCurve):
-            day_count = curve.day_count if day_count is None else day_count
-            origin = curve.origin if origin is None else origin
-            domain = curve.domain if not domain else domain
-            curve = curve.curve
-
-        self.origin = origin
-        self.domain = domain
-        self.day_count = day_count
-
-        super().__init__(init_curve(curve), call=call, invisible=invisible)
-
-    def __iter__(self):
-        if not self.domain:
-            return iter(super())
-        return iter(self.domain)
-
-    @vectorize()
-    def _f(self, x, y=None):
-        """transform arguments into real float values"""
-        if x is None:
-            return None
-        if y is None:
-            x, y = self.origin, x
-        if self.day_count is None:
-            # if hasattr(self.origin, 'day_count'):
-            #     return self.origin.day_count(x)
-            return _day_count (x, y)
-        return self.day_count(x, y)
-
-    @vectorize()
-    def _g(self, x, y=None):
-        """transform real float arguments into values"""
-        raise NotImplemented()
+    return type(name, (CurveAdapter,), {'call': function or name})

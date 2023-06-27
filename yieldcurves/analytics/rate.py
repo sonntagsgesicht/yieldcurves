@@ -8,13 +8,14 @@ from ..curve import CurveAdapter, init_curve
 EPS = 1 / 250
 
 
-# short -> zero <-> df -> cash
+# short -> zero (<-> df) -> cash
 
 class Cv(CurveAdapter):
     """curve from curve to add call signature"""
 
-    def __init__(self, curve):
+    def __init__(self, curve, frequency=None):
         super().__init__(init_curve(curve), invisible=True)
+        self.frequency = frequency or getattr(curve, 'frequency', None)
 
     def __call__(self, x, y=None):
         if y is not None:
@@ -22,12 +23,12 @@ class Cv(CurveAdapter):
         return self.curve(x)
 
 
-class Df(CurveAdapter):
+class DfZ(CurveAdapter):
     """discount factors from zero rate curve"""
 
     def __init__(self, curve, frequency=None):
         super().__init__(init_curve(curve))
-        self.frequency = frequency
+        self.frequency = frequency or getattr(curve, 'frequency', None)
 
     def __call__(self, x, y=None):
         if y is None:
@@ -37,20 +38,26 @@ class Df(CurveAdapter):
         return self(y) / self(x)
 
 
-class Zero(CurveAdapter):
+Df = DfZ
+
+
+class ZeroDf(CurveAdapter):
     """zero rates from discount factor curve"""
 
     def __init__(self, curve, frequency=None):
         super().__init__(init_curve(curve))
-        self.frequency = frequency
+        self.frequency = frequency or getattr(curve, 'frequency', None)
 
     def __call__(self, x, y=None):
         if y is None:
             x, y = 0.0, x
         if x == y:
-            return self(x, x + EPS)
+            y = x + EPS
         f = self.curve(y) / self.curve(x)
         return continuous_rate(f, y - x)
+
+
+Zero = ZeroDf
 
 
 class ZeroZ(Zero):
@@ -74,8 +81,6 @@ class ZeroS(Zero):
             x, y = 0.0, x
         if x == y:
             return self.curve(x)
-        if x > y:
-            return -self(y, x)
         return integrate(self.curve, x, y)[0] / (y - x)
 
 
@@ -96,18 +101,17 @@ class ZeroC(Zero):
         # integrate from x to y the discount factor f
         n = 0
         tenor = 1 / self.frequency
-        while x + n * tenor < y:
+        while x + (n + 1) * tenor < y:
             n += 1
+        frequency = 0
         f = prod(compounding_factor(self.curve(x + i * tenor),
-                                    tenor, self.frequency)
-                 for i in range(n))
+                                    tenor, frequency) for i in range(n))
         e = x + n * tenor
-        f *= compounding_factor(self.curve(e), y - e, self.frequency)
-
+        f *= compounding_factor(self.curve(e), y - e, frequency)
         return compounding_rate(f, y - x, frequency=self.frequency)
 
 
-class Short(CurveAdapter):
+class ShortZ(CurveAdapter):
     """(forward) short rates from zero rate curve"""
 
     def __init__(self, curve):
@@ -121,7 +125,10 @@ class Short(CurveAdapter):
         return continuous_rate(fy / fx, y - x)
 
 
-class Cash(CurveAdapter):
+Short = ShortZ
+
+
+class CashZ(CurveAdapter):
     """cash rates from zero rate curve"""
 
     def __init__(self, curve, frequency=None):
@@ -136,6 +143,9 @@ class Cash(CurveAdapter):
         return simple_rate(fy / fx, y - x)
 
 
+Cash = CashZ
+
+
 class CashC(Cash):
     """cash rates from cash rate curve"""
 
@@ -148,3 +158,9 @@ class CashC(Cash):
                 not self.frequency or y == x + 1 / self.frequency:
             return self.curve.curve(x)
         return super().__call__(x, y)
+
+
+'''
+CashRate(ZeroRateCurve(curve))(x)
+ZeroRate(ShortRateCurve(curve))(x)
+'''

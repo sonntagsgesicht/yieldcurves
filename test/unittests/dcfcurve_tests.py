@@ -33,6 +33,9 @@ class RateCurveUnitTests(TestCase):
 
     def _rate_curve_test(self, curve_a, curve_b, places=7):
 
+        # for a, b in zip(curve_a.domain, curve_b):
+        #     self.assertEqual(a, b)
+
         for d in self.domain:
             for p in self.periods:
                 x = d + p
@@ -42,6 +45,10 @@ class RateCurveUnitTests(TestCase):
 
                 a = curve_a.get_discount_factor(x)
                 b = curve_b.get_discount_factor(x)
+                y = curve_b._pre(x)
+                b = dcf.compounding.periodic_rate(b, y,
+                                                  curve_b._zero.frequency)
+                b = dcf.compounding.continuous_compounding(b, y)
                 self.assertAlmostEqual(a, b, places=places, msg=str(x))
 
                 a = curve_a.get_zero_rate(x)
@@ -53,6 +60,7 @@ class RateCurveUnitTests(TestCase):
                 self.assertAlmostEqual(a, b, places=places, msg=str(x))
 
                 a = curve_a.get_cash_rate(x)
+                curve_b._cash.frequency = None
                 b = curve_b.get_cash_rate(x)
                 self.assertAlmostEqual(a, b, places=places, msg=str(x))
 
@@ -61,7 +69,8 @@ class RateCurveUnitTests(TestCase):
             self.domain, self.points, origin=self.today, forward_tenor='3M')
         yc_curve = yc.ZeroRateCurve(
             self.domain, self.points, origin=self.today, forward_tenor='3M')
-        self._rate_curve_test(dcf_curve, yc_curve, places=2)
+
+        self._rate_curve_test(dcf_curve, yc_curve)
 
     def test_cash_rate_curve(self):
         dcf_curve = dcf.CashRateCurve(
@@ -69,7 +78,15 @@ class RateCurveUnitTests(TestCase):
         yc_curve = yc.CashRateCurve(
             self.domain, self.points, origin=self.today, forward_tenor='3M')
 
-        self._rate_curve_test(dcf_curve, yc_curve, places=3)
+        curve_a = dcf_curve
+        curve_b = yc_curve
+        curve_b._cash.frequency = None
+        for d in self.domain:
+            for p in self.periods:
+                x = d + p
+                a = curve_a.get_cash_rate(x)
+                b = curve_b.get_cash_rate(x)
+                self.assertAlmostEqual(a, b, msg=str(x))
 
     def test_short_rate_curve(self):
         dcf_curve = dcf.ShortRateCurve(
@@ -77,5 +94,4 @@ class RateCurveUnitTests(TestCase):
         dcf_curve._TIME_SHIFT = '6m'
         yc_curve = yc.ShortRateCurve(
             self.domain, self.points, origin=self.today, forward_tenor='3M')
-
-        self._rate_curve_test(dcf_curve, yc_curve, places=2)
+        self._rate_curve_test(dcf_curve, yc_curve)

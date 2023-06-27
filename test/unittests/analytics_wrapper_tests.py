@@ -41,18 +41,21 @@ class IdentityUnitTests(TestCase):
         self.places = 7
         self.curve = self.constant_curve
 
-    def x_test(self, origin, transform, places=7):
+    def x_test(self, origin, transform, places=13):
         for x in self.grid:
             a = origin(x)
             b = transform(x)
             self.assertAlmostEqual(a, b, places=places, msg=f'at {x}')
 
-    def xy_test(self, origin, transform, places=7):
+    def xy_test(self, origin, transform, places=13):
         for x in self.grid:
             for y in self.grid:
                 a = origin(x, y)
                 b = transform(x, y)
                 self.assertAlmostEqual(a, b, places=places, msg=f'at {x} {y}')
+
+
+class RateIdentityUnitTests(IdentityUnitTests):
 
     def test_zero_df(self):
         # constant
@@ -95,7 +98,7 @@ class IdentityUnitTests(TestCase):
     def test_short_zero(self):
         origin = Cv(self.curve)
         transform = Short(ZeroS(origin))
-        self.x_test(self.curve, transform, places=6)
+        self.x_test(self.curve, transform)
 
     def test_cash_zero(self):
         origin = Cv(self.curve)
@@ -103,18 +106,28 @@ class IdentityUnitTests(TestCase):
         self.x_test(self.curve, transform)
 
     def test_zero_cash(self):
-        origin = CashC(self.curve)
-        transform = ZeroC(Cash(origin, frequency=4), frequency=4)
-        self.x_test(self.curve, transform)
-        transform = ZeroC(Cash(origin, frequency=2), frequency=2)
-        self.x_test(self.curve, transform)
-        transform = ZeroC(Cash(origin, frequency=1), frequency=1)
+        origin = CashC(self.curve,frequency=4)
+        transform = Cash(ZeroC(origin, frequency=4))
         self.x_test(origin, transform)
+
+        origin = CashC(self.curve,frequency=2)
+        transform = Cash(ZeroC(origin, frequency=2))
+        self.x_test(origin, transform)
+
+        origin = CashC(self.curve,frequency=1)
+        transform = Cash(ZeroC(origin, frequency=1))
+        self.x_test(origin, transform)
+
+
+class PriceIdentityUnitTests(IdentityUnitTests):
 
     def test_price_yield(self):
         origin = Cv(self.curve)
         transform = Yield(Price(origin))
         self.x_test(self.curve, transform)
+
+
+class CreditIdentityUnitTests(IdentityUnitTests):
 
     def test_pd_prob(self):
         origin = Prob(self.curve)
@@ -131,7 +144,7 @@ class IdentityUnitTests(TestCase):
     def test_intensity_hz(self):
         origin = IntensityI(self.curve)
         transform = IntensityHz(HazardRate(origin))
-        self.x_test(origin, transform, places=4)
+        self.x_test(origin, transform)
         # self.xy_test(origin, transform)
 
     def test_marginal_prob(self):
@@ -140,6 +153,6 @@ class IdentityUnitTests(TestCase):
         # measure error in intensity
         origin = Intensity(origin)
         transform = Intensity(transform)
-        self.x_test(origin, transform, places=2)
+        self.x_test(origin, transform)
         # self.xy_test(origin, transform)
 

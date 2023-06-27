@@ -11,6 +11,8 @@
 
 from vectorizeit import vectorize
 
+from .tools.repr import repr_attr
+
 DAYS_IN_YEAR = 365.25
 
 
@@ -80,6 +82,12 @@ class YearFraction:
         self.day_count = day_count
 
         self._inv = dict((self(d), d) for d in domain)
+
+    def __str__(self):
+        return repr_attr(self, rstyle=False)
+
+    def __repr__(self):
+        return repr_attr(self, rstyle=True)
 
     @vectorize(keys=['x'])
     def __call__(self, x, y=None, *_, **__):

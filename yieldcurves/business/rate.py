@@ -3,17 +3,16 @@ from .. import interpolation as _interpolation
 from ..curve import CurveAdapter
 from ..daycount import YearFraction
 from ..interpolation import linear
-from ..analytics.rate import Df, Zero, Cash, Short, ZeroC, ZeroS, CashC, ZeroZ
+from ..analytics.rate import ZeroRateAdapter, DiscountFactorAdapter, \
+    ShortRateAdapter, CashRateAdapter
 
 
 class RateCurve(CurveAdapter):
 
     forward_tenor = None
-    curve_type = None
 
     def __init__(self, domain=(), data=(), interpolation=linear,
-                 origin=None, day_count=None, forward_tenor=None,
-                 curve_type=None, **__):
+                 origin=None, day_count=None, forward_tenor=None, **__):
         r"""
         :param domain: either curve points $t_1 \dots t_n$
             or a curve object $C$
@@ -42,7 +41,7 @@ class RateCurve(CurveAdapter):
         # build yf transformer, transform domain and build inner curve
         yf = YearFraction(origin, day_count, domain=domain)
         i_type = getattr(_interpolation, str(interpolation), interpolation)
-        super().__init__(i_type(yf(domain), data), pre=yf, **__)
+        super().__init__(i_type(yf(domain), data), pre=yf, inv=yf.inv)
 
         # save properties
         self.domain = domain
@@ -52,29 +51,18 @@ class RateCurve(CurveAdapter):
 
         self.forward_tenor = forward_tenor
         frequency = 1 / self._pre(self.origin + self.forward_tenor)
-        curve_type = curve_type or self.__class__.curve_type
-        if curve_type == 'zero':
-            self._zero = ZeroZ(self.curve, frequency=frequency)
-            self._short = Short(self._zero)
-            self._df = Df(self._zero, frequency=frequency)
-            self._cash = Cash(self._zero, frequency=frequency)
-        elif curve_type == 'short':
-            self._short = self.curve
-            self._zero = ZeroS(self._short, frequency=frequency)
-            self._df = Df(self._zero, frequency=frequency)
-            self._cash = Cash(self._zero, frequency=frequency)
-        elif curve_type == 'cash':
-            self._cash = CashC(self.curve, frequency=frequency)
-            self._zero = ZeroC(self._cash, frequency=frequency)
-            self._short = Short(self._zero)
-            self._df = Df(self._zero, frequency=frequency)
-        elif curve_type == 'df':
-            self._df = self.curve
-            self._zero = Zero(self._df, frequency=frequency)
-            self._short = Short(self._zero)
-            self._cash = Cash(self._zero, frequency=frequency)
+        curve_type = str(self.__class__.__name__).lower()
+        if curve_type.startswith('zero'):
+            adapter = ZeroRateAdapter(self.curve, frequency=frequency)
+        elif curve_type.startswith('short'):
+            adapter = ShortRateAdapter(self.curve, frequency=frequency)
+        elif curve_type.startswith('cash'):
+            adapter = CashRateAdapter(self.curve, frequency=frequency)
+        elif curve_type.startswith('df') or 'df' in curve_type:
+            adapter = DiscountFactorAdapter(self.curve, frequency=frequency)
         else:
             raise NotImplementedError(f'unknown curve type {curve_type}')
+        self.adapter = adapter
 
     def get_discount_factor(self, start, stop=None):
         r"""discounting factor for future cashflows
@@ -107,9 +95,7 @@ class RateCurve(CurveAdapter):
 
         """
         start, stop = self._pre(start), self._pre(stop)
-        if isinstance(self._df, Df):
-            return self._df(start, stop)
-        return self._df(stop) / self._df(start)
+        return self.adapter.df(start, stop)
 
     def get_zero_rate(self, start, stop=None):
         r"""curve of zero rates, i.e. yields of zero cupon bonds
@@ -146,9 +132,7 @@ class RateCurve(CurveAdapter):
 
         """
         start, stop = self._pre(start), self._pre(stop)
-        if isinstance(self._zero, Zero):
-            return self._zero(start, stop)
-        raise NotImplementedError()
+        return self.adapter.zero(start, stop)
 
     def get_cash_rate(self, start, stop=None, step=None):
         r"""interbank cash lending rate
@@ -188,15 +172,13 @@ class RateCurve(CurveAdapter):
         `TONAR <https://en.wikipedia.org/wiki/TONAR>`_.
 
         """
-        if stop is None:
-            if step is None:
-                step = getattr(self, 'forward_tenor', None) \
-                       or self.__class__.forward_tenor
+        if not self.adapter.frequency and step is None:
+            step = getattr(self, 'forward_tenor', None) \
+                   or self.__class__.forward_tenor
+        if stop is None and step is not None:
             stop = start + step
         start, stop = self._pre(start), self._pre(stop)
-        if isinstance(self._cash, Cash):
-            return self._cash(start, stop)
-        raise NotImplementedError()
+        return self.adapter.cash(start, stop)
 
     def get_short_rate(self, start):
         r"""constant interpolated short rate derived from zero rate
@@ -227,7 +209,7 @@ class RateCurve(CurveAdapter):
 
         """
         start = self._pre(start)
-        return self._short(start)
+        return self.adapter.short(start)
 
     def get_swap_annuity(self, date_list=(), start=None, stop=None, step=None):
         r"""swap annuity as the accrual period weighted sum of discount factors
@@ -264,8 +246,7 @@ class RateCurve(CurveAdapter):
         return sum(self.get_discount_factor(s, e) * (e - s) for s, e in se)
 
 
-ZeroRateCurve = type('ZeroRateCurve', (RateCurve,), {'curve_type': 'zero'})
-ShortRateCurve = type('ShortRateCurve', (RateCurve,), {'curve_type': 'short'})
-CashRateCurve = type('CashRateCurve', (RateCurve,), {'curve_type': 'cash'})
-DiscountFactorCurve = type('DiscountFactorCurve', (RateCurve,),
-                           {'curve_type': 'df'})
+ZeroRateCurve = type('ZeroRateCurve', (RateCurve,), {})
+ShortRateCurve = type('ShortRateCurve', (RateCurve,), {})
+CashRateCurve = type('CashRateCurve', (RateCurve,), {})
+DiscountFactorCurve = type('DiscountFactorCurve', (RateCurve,), {})

@@ -46,9 +46,10 @@ class RateCurveUnitTests(TestCase):
                 a = curve_a.get_discount_factor(x)
                 b = curve_b.get_discount_factor(x)
                 y = curve_b._pre(x)
-                b = dcf.compounding.periodic_rate(b, y,
-                                                  curve_b._zero.frequency)
-                b = dcf.compounding.continuous_compounding(b, y)
+                if curve_b.adapter.frequency:
+                    b = dcf.compounding.periodic_rate(b, y,
+                                                      curve_b.adapter.frequency)
+                    b = dcf.compounding.continuous_compounding(b, y)
                 self.assertAlmostEqual(a, b, places=places, msg=str(x))
 
                 a = curve_a.get_zero_rate(x)
@@ -60,7 +61,7 @@ class RateCurveUnitTests(TestCase):
                 self.assertAlmostEqual(a, b, places=places, msg=str(x))
 
                 a = curve_a.get_cash_rate(x)
-                curve_b._cash.frequency = None
+                curve_b.adapter.frequency = None
                 b = curve_b.get_cash_rate(x)
                 self.assertAlmostEqual(a, b, places=places, msg=str(x))
 
@@ -80,7 +81,7 @@ class RateCurveUnitTests(TestCase):
 
         curve_a = dcf_curve
         curve_b = yc_curve
-        curve_b._cash.frequency = None
+        curve_b.curve.frequency = None
         for d in self.domain:
             for p in self.periods:
                 x = d + p

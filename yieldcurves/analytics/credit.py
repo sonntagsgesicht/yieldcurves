@@ -1,69 +1,48 @@
-from ..compounding import continuous_compounding, continuous_rate
-from ..curve import CurveAdapter, init_curve
-from .rate import Zero, Short, ZeroS, ZeroZ, Df
+from ..curve import CurveAdapter
+from .interest import ZeroRateAdapter, DiscountFactorAdapter, ShortRateAdapter
 
 
-# hz -> intensity <-> prob -> pd / marginal
+class _Api(CurveAdapter):
 
-HazardRate = type('HazardRate', (Short,),
-                  {'__doc__': """hazard rate from intensity curve"""})
-Intensity = type('Intensity', (Zero,),
-                 {'__doc__': """intensity from probability curve"""})
-IntensityHz = type('IntensityHz', (ZeroS,),
-                   {'__doc__': """intensity from hazard rate curve"""})
-IntensityI = type('IntensityI', (ZeroZ,),
-                  {'__doc__': """intensity from intensity curve"""})
-Prob = type('Prob', (Df,),
-            {'__doc__': """survival probability from intensity curve"""})
+    adapter = None
 
+    def __init__(self, curve, **__):
+        curve = self.adapter(curve, invisible=None)
+        super().__init__(curve, **__)
 
-class Pd(CurveAdapter):
-    """default probability from survival probability curve"""
+    def prob(self, x, y=None):
+        return self.curve.df(x, y)
 
-    def __init__(self, curve):
-        super().__init__(init_curve(curve))
+    def pd(self, x, y=None):
+        return 1. - self.prob(x, y)
 
-    def __call__(self, x, y=None):
-        if y is None:
-            return 1. - self.curve(x)
-        return 1. - self.curve(y) / self.curve(x)
+    def marginal(self, x):
+        return self.prob(x, x + 1.)
+
+    def intensity(self, x, y=None):
+        return self.curve.zero(x, y)
+
+    def hazard_rate(self, x):
+        return self.curve.short(x)
 
 
-class ProbPd(Prob):
-    """survival probability from default probability curve"""
+FlatIntensityAdapter = \
+    type('FlatIntensityAdapter', (_Api, ), {'adapter': ZeroRateAdapter})
 
-    def __call__(self, x, y=None):
-        if y is None:
-            return 1. - self.curve(x)
-        return self(y) / self(x)
+HazardRateAdapter = \
+    type('HazardRateAdapter', (_Api, ShortRateAdapter), {})
 
 
-class Marginal(CurveAdapter):
-    """marginal (forward) probability from survival probability curve"""
+SurvivalProbabilityAdapter = \
+    type('SurvivalProbabilityAdapter', (_Api, DiscountFactorAdapter), {})
+
+
+class MarginalSurvivalProbabilityAdapter(_Api, DiscountFactorAdapter):
 
     def __init__(self, curve):
-        super().__init__(init_curve(curve))
 
-    def __call__(self, x, y=None):
-        if y is None:
-            y = x + 1
-        if x == y:
-            return 1.0
-        return self.curve(y) / self.curve(x)
+        super().__init__(curve)
 
 
-class ProbM(Prob):
-    """survival probability from marginal (forward) probability curve"""
-
-    def __call__(self, x, y=None):
-        if y is None:
-            x, y = 0.0, x
-        if x == y:
-            return 1.0
-        f = t = 1.0
-        while x + t < y:
-            f *= self.curve(x)
-            x += t
-        r = continuous_rate(self.curve(x), t)
-        f *= continuous_compounding(r, y - x)
-        return f
+class DefaultProbabilityAdapter(CurveAdapter):
+    pass

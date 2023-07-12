@@ -96,10 +96,10 @@ class base_interpolation(UserDict):
         if not len(set(x_list)) == len(x_list):
             raise KeyError(f"identical x values in {x_list}")
         # super().__init__(sorted(zip(x_list, y_list)))
-        super().__init__(zip(x_list, y_list))
+        super().__init__(zip(map(float, x_list), map(float, y_list)))
 
     def __call__(self, x):
-        return x
+        return float(x)
 
     def __setitem__(self, key, value):
         super().__setitem__(float(key), float(value))
@@ -136,10 +136,10 @@ class flat(base_interpolation):
     def __init__(self, y=0.0):
         r""" flat or constant interpolation
 
-        :param y: constant return value $\hat{y}$
+        :param y: constant return float $\hat{y}$
 
         A |flat()| object is a function $f$
-        returning a constant value $\hat{y}$.
+        returning a constant float $\hat{y}$.
         $$f(x)=\hat{y}\text{ const.}$$
         for all $x$.
 
@@ -164,14 +164,14 @@ class identity(base_interpolation):
 
 class default_value_interpolation(base_interpolation):
     def __init__(self, x_list=(), y_list=(), default_value=None):
-        r""" default value interpolation
+        r""" default float interpolation
 
         :param x_list: points $x_1 \dots x_n$
         :param y_list: values $y_1 \dots y_n$
-        :param default_value: default value $d$
+        :param default_value: default float $d$
 
         A |default_value_interpolation()| object is a function $f$
-        returning at $x$ the value $y_i$
+        returning at $x$ the float $y_i$
         with $i$ to be the first matching index such that $x=x_i$
         $$f(x)=y_i\text{ for } x=x_i$$
         and $d$ if no matching $x_i$ is found.
@@ -212,7 +212,7 @@ class no(default_value_interpolation):
         :param y_list: values $y_1 \dots y_n$
 
         A |no()| object is a function $f$
-        returning at $x$ the value $y_i$
+        returning at $x$ the float $y_i$
         with $i$ to be the first matching index such that $x=x_i$
         $$f(x)=y_i\text{ for } x=x_i \text{ else None}$$
 
@@ -237,7 +237,7 @@ class zero(default_value_interpolation):
         :param y_list: values $y_1 \dots y_n$
 
         A |zero()| object is a function $f$
-        returning at $x$ the value $y_i$
+        returning at $x$ the float $y_i$
         if $x=x_i$ else zero.
         with $i$ to be the first matching index such that
         $$f(x)=y_i\text{ for } x=x_i \text{ else } 0$$
@@ -267,7 +267,7 @@ class left(base_interpolation):
         :param y_list: values $y_1 \dots y_n$
 
         A |left()| object is a function $f$
-        returning at $x$ the last given value $y_i$
+        returning at $x$ the last given float $y_i$
         reading from left to right, i.e.
         with $i$ to be the matching index such that
         $$f(x)=y_i\text{ for } x_i \leq x < x_{i+1}$$
@@ -318,7 +318,7 @@ class right(base_interpolation):
         :param y_list: values $y_1 \dots y_n$
 
         A |right()| object is a function $f$
-        returning at $x$ the last given value $y_i$
+        returning at $x$ the last given float $y_i$
         reading from right to left, i.e.
         with $i$ to be the matching index such that
         $$f(x)=y_i\text{ for } x_i < x \leq x_{i+1}$$
@@ -356,7 +356,7 @@ class nearest(base_interpolation):
         :param y_list: values $y_1 \dots y_n$
 
         A |nearest()| object is a function $f$
-        returning at $x$ the given value $y_i$
+        returning at $x$ the given float $y_i$
         of the nearest $x_i$
         from both left and right, i.e.
         with $i$ to be the matching index such that
@@ -403,7 +403,7 @@ class linear(base_interpolation):
         :param y_list: values $y_1 \dots y_n$
 
         A |linear()| object is a function $f$
-        returning at $x$ the linear interpolated value of
+        returning at $x$ the linear interpolated float of
         $y_i$ and $y_{i+1}$ when $x_i \leq x < x_{i+1}$, i.e.
         $$f(x)=(y_{i+1}-y_i) \cdot \frac{x-x_i}{x_{i+1}-x_i}$$
 
@@ -442,8 +442,8 @@ class loglinear(linear):
         :param y_list: values $y_1 \dots y_n$
 
         A |loglinear()| object is a function $f$
-        returning at $x$ the value $\exp(y)$
-        of  the linear interpolated value $y$ of
+        returning at $x$ the float $\exp(y)$
+        of  the linear interpolated float $y$ of
         $\log(y_i)$ and $\log(y_{i+1})$ when $x_i \leq x < x_{i+1}$, i.e.
         $$f(x)=\exp\Big((\log(y_{i+1})-\log(y_i))
         \cdot \frac{x-x_i}{x_{i+1}-x_i}\Big)$$
@@ -487,8 +487,8 @@ class loglinearrate(linear):
         :param y_list: values $y_1 \dots y_n$
 
         A |loglinearrate()| object is a function $f$
-        returning at $x$ the value $\exp(x \cdot y)$
-        of  the linear interpolated value $y$ of
+        returning at $x$ the float $\exp(x \cdot y)$
+        of  the linear interpolated float $y$ of
         $\log(\frac{y_i}{x_i})$ and $\log(\frac{y_{i+1}}{x_{i+1}})$
         when $x_i \leq x < x_{i+1}$, i.e.
         $$f(x)=\exp\Big(x \cdot
@@ -541,8 +541,8 @@ class logconstantrate(constant):
         :param y_list: values $y_1 \dots y_n$
 
         A |logconstantrate()| object is a function $f$
-        returning at $x$ the value $\exp(x \cdot y)$
-        of the constant interpolated value $y$ of
+        returning at $x$ the float $\exp(x \cdot y)$
+        of the constant interpolated float $y$ of
         $\log(\frac{y_i}{x_i})$
         when $x_i \leq x < x_{i+1}$, i.e.
         $$f(x)=\exp\Big(x \cdot \log(\frac{y_i}{x_i})\Big)$$

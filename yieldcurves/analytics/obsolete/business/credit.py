@@ -1,9 +1,9 @@
 
-from .. import interpolation as _interpolation
-from ..daycount import YearFraction
-from yieldcurves.curve import CurveAdapter
-from ..interpolation import constant, linear, loglinearrate
-from ..analytics.credit import Marginal, Prob, Pd, IntensityHz, Intensity, \
+from .... import interpolation as _interpolation
+from ....daycount import YearFraction
+from ....tools.curve import CurveAdapter
+from ....interpolation import constant, linear, loglinearrate
+from ..credit import Marginal, Prob, Pd, IntensityHz, Intensity, \
     HazardRate, ProbPd, IntensityI
 
 

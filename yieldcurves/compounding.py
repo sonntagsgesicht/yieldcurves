@@ -22,7 +22,7 @@ def simple_compounding(rate_value, maturity_value):
     :param maturity_value: loan maturity $\tau$
     :return: $\frac{1}{1+r\cdot \tau}$
     """
-    return 1.0 / (1.0 + rate_value * maturity_value)
+    return 1.0 / (1.0 + rate_value * float(maturity_value))
 
 
 @vectorize(['rate_value', 'maturity_value'], zipped=True)
@@ -33,7 +33,7 @@ def simple_rate(df, period_fraction):
     :param period_fraction: interest rate period $\tau$
     :return: $\frac{1}{df-1}\cdot \frac{1}{\tau}$
     """
-    return (1.0 / df - 1.0) / period_fraction
+    return (1.0 / df - 1.0) / float(period_fraction)
 
 
 @vectorize(['rate_value', 'maturity_value'], zipped=True)
@@ -44,7 +44,7 @@ def continuous_compounding(rate_value, maturity_value):
     :param maturity_value: loan maturity $\tau$
     :return: $\exp(-r\cdot \tau)$
     """
-    return exp(-1.0 * rate_value * maturity_value)
+    return exp(-1.0 * rate_value * float(maturity_value))
 
 
 @vectorize(['rate_value', 'maturity_value'], zipped=True)
@@ -57,7 +57,7 @@ def continuous_rate(df, period_fraction):
     """
     if not df:
         pass
-    return -log(df) / period_fraction
+    return -log(df) / float(period_fraction)
 
 
 @vectorize(['rate_value', 'maturity_value'], zipped=True)
@@ -74,7 +74,7 @@ def periodic_compounding(rate_value, maturity_value, period_value):
     if period_value == 0:
         return simple_compounding(rate_value, maturity_value)
 
-    ex = -period_value * maturity_value
+    ex = -period_value * float(maturity_value)
     return pow(1.0 + float(rate_value) / period_value, ex)
 
 
@@ -87,6 +87,7 @@ def periodic_rate(df, period_fraction, frequency):
     :param frequency: number of interest rate periods $m$
     :return: $(df^{-\frac{1}{\tau\cdot m}}-1) \cdot m$
     """
+    period_fraction = float(period_fraction)
     return (pow(df, -1.0 / (period_fraction * frequency)) - 1.0) * frequency
 
 

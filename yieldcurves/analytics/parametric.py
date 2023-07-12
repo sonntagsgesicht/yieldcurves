@@ -24,7 +24,7 @@ class NelsonSiegelSvensson(UserDict):
 
     @vectorize()
     def __call__(self, x):
-        x = x or 1e-8
+        x = float(x) or 1e-8
         if isinstance(x, (list, tuple)):
             return type(x)(self(_) for _ in x)
         *beta, tau1, tau2 = self.values()

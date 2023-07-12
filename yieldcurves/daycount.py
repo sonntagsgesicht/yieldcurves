@@ -16,7 +16,7 @@ from .tools.repr import repr_attr
 DAYS_IN_YEAR = 365.25
 
 
-def day_count(start, end):
+def _day_count(start, end):
     r""" default day count function for rate period calculation
 
     :param start: period start date $t_s$
@@ -59,12 +59,33 @@ def day_count(start, end):
     return float(diff)
 
 
-_day_count = day_count
+class Inv:
+
+    def __init__(self, yf, domain=()):
+        self._yf = yf
+        self._inv = dict((yf(d), d) for d in domain)
+
+    def __str__(self):
+        return repr_attr(self, rstyle=False)
+
+    def __repr__(self):
+        return repr_attr(self, rstyle=True)
+
+    @vectorize(keys=['x'])
+    def __call__(self, x, y=None, *_, **__):
+        if not x:
+            return self(y)
+        if y is None:
+            if x is None:
+                return None
+            if x in self._inv:
+                return self._inv[x]
+        raise NotImplementedError()
 
 
 class YearFraction:
 
-    def __init__(self, origin=None, day_count=None, domain=(),
+    def __init__(self, day_count=None, origin=None, domain=(),
                  date_type=float):
         # gather origin
         if origin is None:
@@ -81,7 +102,7 @@ class YearFraction:
             day_count = getattr(origin, 'day_count', None) or _day_count
         self.day_count = day_count
 
-        self._inv = dict((self(d), d) for d in domain)
+        self.inv = Inv(self, domain)
 
     def __str__(self):
         return repr_attr(self, rstyle=False)
@@ -96,13 +117,3 @@ class YearFraction:
                 return None
             x, y = self.origin, x
         return self.day_count(x, y)
-
-    @vectorize(keys=['x'])
-    def inv(self, x, y=None, *_, **__):
-        if y is None:
-            if x is None:
-                return None
-            if x in self._inv:
-                return self._inv[x]
-            x, y = self.origin, x
-        raise NotImplementedError()

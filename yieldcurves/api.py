@@ -1,68 +1,10 @@
 
-from .. import interpolation as _interpolation
-from ..curve import CurveAdapter
-from ..daycount import YearFraction
-from ..interpolation import linear
-from ..analytics.rate import ZeroRateAdapter, DiscountFactorAdapter, \
-    ShortRateAdapter, CashRateAdapter
+from .tools.curve import CurveAdapter
 
 
-class RateCurve(CurveAdapter):
+class RateApi(CurveAdapter):
 
     forward_tenor = None
-
-    def __init__(self, domain=(), data=(), interpolation=linear,
-                 origin=None, day_count=None, forward_tenor=None, **__):
-        r"""
-        :param domain: either curve points $t_1 \dots t_n$
-            or a curve object $C$
-        :param data: either curve values $y_1 \dots y_n$
-            or a curve object $C$
-        :param interpolation: (optional) interpolation scheme
-        :param origin: (optional) curve points origin $t_0$
-        :param day_count: (optional) day count convention function $\tau(s, t)$
-        :param forward_tenor: (optional) forward rate tenor period $\tau^*$
-
-        If **data** is a |RateCurve| instance $C$,
-        it is casted to this new class type
-        with domain grid given by **domain**.
-
-        If **domain** is a |RateCurve| instance $C$,
-        it is casted to this new class type
-        with domain grid given **domain** property of $C$.
-
-        Further arguments
-        **interpolation**, **origin**, **day_count**, **forward_tenor**
-        will replace the ones given by $C$ if not given explictly.
-
-        """
-        domain = tuple(domain)
-
-        # build yf transformer, transform domain and build inner curve
-        yf = YearFraction(origin, day_count, domain=domain)
-        i_type = getattr(_interpolation, str(interpolation), interpolation)
-        super().__init__(i_type(yf(domain), data), pre=yf, inv=yf.inv)
-
-        # save properties
-        self.domain = domain
-        self.origin = origin
-        self.day_count = day_count
-        self.interpolation = getattr(i_type, '__name__', str(interpolation))
-
-        self.forward_tenor = forward_tenor
-        frequency = 1 / self._pre(self.origin + self.forward_tenor)
-        curve_type = str(self.__class__.__name__).lower()
-        if curve_type.startswith('zero'):
-            adapter = ZeroRateAdapter(self.curve, frequency=frequency)
-        elif curve_type.startswith('short'):
-            adapter = ShortRateAdapter(self.curve, frequency=frequency)
-        elif curve_type.startswith('cash'):
-            adapter = CashRateAdapter(self.curve, frequency=frequency)
-        elif curve_type.startswith('df') or 'df' in curve_type:
-            adapter = DiscountFactorAdapter(self.curve, frequency=frequency)
-        else:
-            raise NotImplementedError(f'unknown curve type {curve_type}')
-        self.adapter = adapter
 
     def get_discount_factor(self, start, stop=None):
         r"""discounting factor for future cashflows
@@ -95,7 +37,7 @@ class RateCurve(CurveAdapter):
 
         """
         start, stop = self._pre(start), self._pre(stop)
-        return self.adapter.df(start, stop)
+        return self.curve.df(start, stop)
 
     def get_zero_rate(self, start, stop=None):
         r"""curve of zero rates, i.e. yields of zero cupon bonds
@@ -132,7 +74,7 @@ class RateCurve(CurveAdapter):
 
         """
         start, stop = self._pre(start), self._pre(stop)
-        return self.adapter.zero(start, stop)
+        return self.curve.zero(start, stop)
 
     def get_cash_rate(self, start, stop=None, step=None):
         r"""interbank cash lending rate
@@ -172,13 +114,13 @@ class RateCurve(CurveAdapter):
         `TONAR <https://en.wikipedia.org/wiki/TONAR>`_.
 
         """
-        if not self.adapter.frequency and step is None:
+        if step is None:
             step = getattr(self, 'forward_tenor', None) \
                    or self.__class__.forward_tenor
         if stop is None and step is not None:
             stop = start + step
         start, stop = self._pre(start), self._pre(stop)
-        return self.adapter.cash(start, stop)
+        return self.curve.cash(start, stop)
 
     def get_short_rate(self, start):
         r"""constant interpolated short rate derived from zero rate
@@ -209,7 +151,7 @@ class RateCurve(CurveAdapter):
 
         """
         start = self._pre(start)
-        return self.adapter.short(start)
+        return self.curve.short(start)
 
     def get_swap_annuity(self, date_list=(), start=None, stop=None, step=None):
         r"""swap annuity as the accrual period weighted sum of discount factors
@@ -246,7 +188,182 @@ class RateCurve(CurveAdapter):
         return sum(self.get_discount_factor(s, e) * (e - s) for s, e in se)
 
 
-ZeroRateCurve = type('ZeroRateCurve', (RateCurve,), {})
-ShortRateCurve = type('ShortRateCurve', (RateCurve,), {})
-CashRateCurve = type('CashRateCurve', (RateCurve,), {})
-DiscountFactorCurve = type('DiscountFactorCurve', (RateCurve,), {})
+class FxApi(CurveAdapter):
+
+    def get_fx_rate(self, value_date):
+        """ forward exchange rate at **value_date**
+
+        as the future price of one foreign currency unit.
+        Derived by interpolation on given forward exchange rate
+        and extrapolation by foreign and domestic interest rate curves.
+
+        :param value_date: future date of exchange rate
+        :return: forward exchange rate at **value_date**
+        """
+        value_date = self._pre(value_date)
+        return self.curve.fx(value_date)
+
+
+class PriceApi(CurveAdapter):
+
+    def get_forward_price(self, value_date):
+        """ asset forward price at **value_date**
+
+        derived by interpolation on given forward prices
+        and extrapolation by given discount_factor resp. yield curve
+
+        :param value_date: future date of asset price
+        :return: asset forward price at **value_date**
+        """
+        value_date = self._pre(value_date)
+        return self.curve.price(value_date)
+
+    def get_price_yield(self, start, stop=None):
+        """ asset yield between **start** and **stop** dates
+
+        derived by interpolation on given forward prices
+        and extrapolation by given discount_factor resp. yield curve
+
+        :param start: date of start asset price
+        :param stop: future date of stop asset price
+        :return: asset return yield between **start** and **stop** dates
+        """
+        start, stop = self._pre(start), self._pre(stop)
+        return self.curve.return_yield(start, stop)
+
+
+class CreditApi(CurveAdapter):
+
+    def get_default_prob(self, start, stop=None):
+        r"""default probability of credit curve
+
+        :param start: start point in time $t_0$ of period
+        :param stop: end point $t_1$ of period
+            (optional, if not given $t_0$ will be **origin**
+            and $t_1$ taken from **start**)
+        :return: survival probability $sv(t_0, t_1)$
+            for period $t_0$ to $t_1$
+
+        Assume an uncertain event $\chi$,
+        e.g. occurrence of a credit default event
+        such as a loan borrower failing to fulfill the obligation
+        to pay back interest or redemption.
+
+        Let $\iota_\chi$ be the point in time when the event $\chi$ happens.
+
+        Then the survival probability $sv(t_0, t_1)$
+        is the probability of not occurring $\chi$ until $t_1$ if
+        $\chi$ didn't happen until $t_0$, i.e.
+
+        $$sv(t_0, t_1) = 1 - P(t_0 < \iota_\chi \leq t_1)$$
+
+        * similar to |InterestRateCurve().get_discount_factor()|
+
+        """
+        start, stop = self._pre(start), self._pre(stop)
+        return self.curve.pd(start, stop)
+
+    def get_survival_prob(self, start, stop=None):
+        r"""survival probability of credit curve
+
+        :param start: start point in time $t_0$ of period
+        :param stop: end point $t_1$ of period
+            (optional, if not given $t_0$ will be **origin**
+            and $t_1$ taken from **start**)
+        :return: survival probability $sv(t_0, t_1)$
+            for period $t_0$ to $t_1$
+
+        Assume an uncertain event $\chi$,
+        e.g. occurrence of a credit default event
+        such as a loan borrower failing to fulfill the obligation
+        to pay back interest or redemption.
+
+        Let $\iota_\chi$ be the point in time when the event $\chi$ happens.
+
+        Then the survival probability $sv(t_0, t_1)$
+        is the probability of not occurring $\chi$ until $t_1$ if
+        $\chi$ didn't happen until $t_0$, i.e.
+
+        $$sv(t_0, t_1) = 1 - P(t_0 < \iota_\chi \leq t_1)$$
+
+        * similar to |InterestRateCurve().get_discount_factor()|
+
+        """
+        start, stop = self._pre(start), self._pre(stop)
+        return self.curve.prob(start, stop)
+
+    def get_marginal_prob(self, start):
+        r"""marginal survival probability of credit curve
+
+        :param start: start point in time $t_0$ of period
+        :param stop: end point $t_1$ of period
+            (optional, if not given $t_0$ will be **origin**
+            and $t_1$ taken from **start**)
+        :return: survival probability $sv(t_0, t_1)$
+            for period $t_0$ to $t_1$
+
+        Assume an uncertain event $\chi$,
+        e.g. occurrence of a credit default event
+        such as a loan borrower failing to fulfill the obligation
+        to pay back interest or redemption.
+
+        Let $\iota_\chi$ be the point in time when the event $\chi$ happens.
+
+        Then the survival probability $sv(t_0, t_1)$
+        is the probability of not occurring $\chi$ until $t_1$ if
+        $\chi$ didn't happen until $t_0$, i.e.
+
+        $$sv(t_0, t_1) = 1 - P(t_0 < \iota_\chi \leq t_1)$$
+
+        * similar to |InterestRateCurve().get_discount_factor()|
+
+        """
+        start = self._pre(start)
+        return self.curve.marginal(start)
+
+    def get_flat_intensity(self, start, stop=None):
+        r"""intensity value of credit curve
+
+        :param start: start point in time $t_0$ of intensity
+        :param stop: end point $t_1$  of intensity
+            (optional, if not given $t_0$ will be **origin**
+            and $t_1$ taken from **start**)
+        :return: intensity $\lambda(t_0, t_1)$
+
+        The intensity $\lambda(t_0, t_1)$ relates to survival probabilities by
+
+        $$sv(t_0, t_1) = exp(-\lambda(t_0, t_1) \cdot \tau(t_0, t_1)).$$
+
+        * similar to |InterestRateCurve().get_zero_rate()|
+
+        """
+        start, stop = self._pre(start), self._pre(stop)
+        return self.curve.intensity(start, stop)
+
+    def get_hazard_rate(self, start):
+        r"""hazard rate of credit curve
+
+        :param start: point in time $t$ of hazard rate
+        :return: hazard rate $hz(t)$
+
+        The hazard rate $hz(t)$ relates to intensities by
+
+        $$\lambda(t_0, t_1) = \int_{t_0}^{t_1} hz(t)\ dt.$$
+
+        * similar to |InterestRateCurve().get_short_rate()|
+
+        """
+        start = self._pre(start)
+        return self.curve.hazard_rate(start)
+
+
+class VolApi(CurveAdapter):
+
+    def get_terminal_vol(self, value_date):
+        """terminal volatility at **value_date**
+
+        :param value_date:
+        :return:
+        """
+        value_date = self._pre(value_date)
+        return self.curve(value_date)

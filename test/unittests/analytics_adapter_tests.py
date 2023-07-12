@@ -126,40 +126,39 @@ class RateIdentityUnitTests(IdentityUnitTests):
         self.dzsc_test(CashRateAdapter(curve, 0.25), *from_cash(curve, 0.25))
 
 
-class PriceIdentityUnitTests(IdentityUnitTests):
-
-    def test_price_yield(self):
-        origin = Cv(self.curve)
-        transform = Yield(Price(origin))
-        self.x_test(self.curve, transform)
-
-
-class CreditIdentityUnitTests(IdentityUnitTests):
-
-    def test_pd_prob(self):
-        origin = Prob(self.curve)
-        transform = ProbPd(Pd(origin))
-        self.x_test(origin, transform)
-        self.xy_test(origin, transform)
-
-    def test_intensity_prob(self):
-        origin = IntensityI(self.curve)
-        transform = Intensity(Prob(origin))
-        self.x_test(origin, transform)
-        self.xy_test(origin, transform)
-
-    def test_intensity_hz(self):
-        origin = IntensityI(self.curve)
-        transform = IntensityHz(HazardRate(origin))
-        self.x_test(origin, transform)
-        # self.xy_test(origin, transform)
-
-    def test_marginal_prob(self):
-        origin = Prob(self.curve)
-        transform = ProbM(Marginal(origin))
-        # measure error in intensity
-        origin = Intensity(origin)
-        transform = Intensity(transform)
-        self.x_test(origin, transform)
-        # self.xy_test(origin, transform)
-
+# class PriceIdentityUnitTests(IdentityUnitTests):
+#
+#     def test_price_yield(self):
+#         origin = Cv(self.curve)
+#         transform = Yield(Price(origin))
+#         self.x_test(self.curve, transform)
+#
+#
+# class CreditIdentityUnitTests(IdentityUnitTests):
+#
+#     def test_pd_prob(self):
+#         origin = Prob(self.curve)
+#         transform = ProbPd(Pd(origin))
+#         self.x_test(origin, transform)
+#         self.xy_test(origin, transform)
+#
+#     def test_intensity_prob(self):
+#         origin = IntensityI(self.curve)
+#         transform = Intensity(Prob(origin))
+#         self.x_test(origin, transform)
+#         self.xy_test(origin, transform)
+#
+#     def test_intensity_hz(self):
+#         origin = IntensityI(self.curve)
+#         transform = IntensityHz(HazardRate(origin))
+#         self.x_test(origin, transform)
+#         # self.xy_test(origin, transform)
+#
+#     def test_marginal_prob(self):
+#         origin = Prob(self.curve)
+#         transform = ProbM(Marginal(origin))
+#         # measure error in intensity
+#         origin = Intensity(origin)
+#         transform = Intensity(transform)
+#         self.x_test(origin, transform)
+#         # self.xy_test(origin, transform)

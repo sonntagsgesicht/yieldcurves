@@ -9,11 +9,12 @@
 # Website:  https://github.com/sonntagsgesicht/yieldcurves
 # License:  Apache License 2.0 (see LICENSE file)
 
+from .datetime import DAYS_IN_YEAR
+
+
 from vectorizeit import vectorize
 
-from .tools.repr import repr_attr
-
-DAYS_IN_YEAR = 365.25
+from ..tools.repr import repr_attr
 
 
 def _day_count(start, end):
@@ -73,8 +74,8 @@ class Inv:
 
     @vectorize(keys=['x'])
     def __call__(self, x, y=None, *_, **__):
-        if not x:
-            return self(y)
+        # if not x:
+        #     return self(y)
         if y is None:
             if x is None:
                 return None

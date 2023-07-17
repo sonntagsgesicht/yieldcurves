@@ -1,10 +1,8 @@
 
-from .tools.curve import CurveAdapter
+from ..tools.fulladapter import CurveAdapter
 
 
 class RateApi(CurveAdapter):
-
-    forward_tenor = None
 
     def get_discount_factor(self, start, stop=None):
         r"""discounting factor for future cashflows
@@ -116,7 +114,7 @@ class RateApi(CurveAdapter):
         """
         if step is None:
             step = getattr(self, 'forward_tenor', None) \
-                   or self.__class__.forward_tenor
+                   or getattr(self.__class__, 'forward_tenor', None)
         if stop is None and step is not None:
             stop = start + step
         start, stop = self._pre(start), self._pre(stop)
@@ -201,7 +199,7 @@ class FxApi(CurveAdapter):
         :return: forward exchange rate at **value_date**
         """
         value_date = self._pre(value_date)
-        return self.curve.fx(value_date)
+        return self.curve.price(value_date)
 
 
 class PriceApi(CurveAdapter):

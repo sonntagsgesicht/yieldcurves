@@ -13,8 +13,9 @@
 from unittest import TestCase
 
 from yieldcurves.interpolation import linear
-from yieldcurves.curve import CurveAdapter, \
-    CurveAlgebra, init_curve, call_wrapper_builder
+from yieldcurves.tools.fulladapter import CurveAdapter
+from yieldcurves.tools.adapter import CurveAlgebra, init_curve, \
+    call_wrapper_builder, CallAdapter
 
 
 def lin(start, stop, step):
@@ -290,7 +291,7 @@ class CurveUnitTests(TestCase):
 
     def test_init_curve(self):
         v = 0.01
-        c = init_curve(v)
+        c = init_curve(v, curve_type=CurveAdapter)
         self.assertTrue(isinstance(c, CurveAdapter))
         self.assertNotEqual(type(c), type(v))
         self.assertEqual(c.curve, v)

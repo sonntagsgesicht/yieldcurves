@@ -16,7 +16,6 @@ sys.path.append('.')
 sys.path.append('..')
 
 from .curve_tests import *
-from .analytics_wrapper_tests import *
 from .compounding_tests import *
 from .curve_tests import *
 from .dcfcurve_tests import *

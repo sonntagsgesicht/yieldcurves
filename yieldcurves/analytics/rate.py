@@ -1,57 +1,58 @@
-from .obsolete.rate import *
 
-from ..compounding import compounding_factor, compounding_rate, \
-    simple_rate, continuous_compounding, continuous_rate
-from ..curve import CurveAdapter, init_curve
-from ..tools import integrate
-
-EPS = 1 / 250
+from ..compounding import compounding_factor, compounding_rate
+from ..tools.adapter import CurveAdapter, init_curve
 
 
-# --- RateAdapter ---
+class CompoundingFactor(CurveAdapter):
 
-# short [diff(rate)] <-> rate [int(short)]
-# rate [ln(price)/time] <-> price [exp(rate*time)]
+    def __init__(self, curve, frequency=None, *, invisible=None):
+        """discount factor curve from yield curve
 
-
-class ContinuousRate(CurveAdapter):
-
-    def __init__(self, curve, frequency=None, **__):
-        super().__init__(curve, **__)
+        :param curve: yield curve
+        :param frequency: compounding frequency
+        :param invisible: hide adapter in string representation
+        """
+        super().__init__(init_curve(curve), invisible=invisible)
         self.frequency = frequency
 
     def __call__(self, x, y=None):
-        x, y = self._pre(x), self._pre(y)
-        fx = compounding_factor(self.curve(x), x, self.frequency)
-        if y is None:
-            return compounding_rate(fx, x)
-        fy = compounding_factor(self.curve(y), y, self.frequency)
-        return compounding_rate(fy / fx, y - x)
-
-
-class RateAdapter(CurveAdapter):
-
-    def __init__(self, curve, frequency=None, call=None, invisible=None):
-        super().__init__(init_curve(curve), call=call, invisible=invisible)
-        self.frequency = frequency
-
-    def factor(self, x, y=None, frequency=None):
-        x, y = self._pre(x), self._pre(y)
+        if isinstance(self.curve, CompoundingFactor):
+            return self.curve(x, y)
         if x == y:
             return 1.0
-        fx = compounding_factor(self.curve(x), x, frequency)
+        # if isinstance(self.curve, CompoundingRate):
+        #     return compounding_factor(self.curve(x, y), y - x, self.frequency)
+        fx = compounding_factor(self.curve(x), x, self.frequency)
         if y is None:
             return fx
-        fy = compounding_factor(self.curve(y), y, frequency)
+        fy = compounding_factor(self.curve(y), y, self.frequency)
         return fy / fx
 
-    def rate(self, x, y=None, frequency=None):
-        x, y = self._pre(x), self._pre(y)
+
+class CompoundingRate(CurveAdapter):
+
+    def __init__(self, curve, frequency=None, *, invisible=None):
+        """yield curve from discount factor curve
+
+        :param curve: discount factor curve
+        :param frequency: compounding frequency
+        :param invisible: hide adapter in string representation
+
+        hint to convert periodical compounded rates in to continuous rates
+
+        >>> quarterly = CurveAdapter(.02)
+        >>> f = CompoundingFactor(quarterly, frequency=4, invisible=True)
+        >>> continuous = CompoundingRate(f, frequency=None, invisible=True)
+
+        """
+        super().__init__(init_curve(curve), invisible=invisible)
+        self.frequency = frequency
+
+    def __call__(self, x, y=None):
+        if isinstance(self.curve, CompoundingFactor):
+            return compounding_rate(self.curve(x, y), y - x, self.frequency)
         if y is None:
-            # x, y = 0.0, x
             return self.curve(x)
-        if x == y:
-            y = x + EPS
-        fx = compounding_factor(self.curve(x), x, frequency)
-        fy = compounding_factor(self.curve(y), y, frequency)
-        return compounding_rate(fy / fx, y - x, frequency=frequency)
+        fx = compounding_factor(self.curve(x), x, self.frequency)
+        fy = compounding_factor(self.curve(y), y, self.frequency)
+        return compounding_rate(fy / fx, y - x, self.frequency)

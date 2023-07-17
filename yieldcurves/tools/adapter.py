@@ -4,55 +4,33 @@ from vectorizeit import vectorize
 
 from .repr import attr, repr_attr
 
-CurveValue = Union[int, float]
-Curve = Union[CurveValue, Callable]
+Curve = Union[float, Callable]
+
 
 # --- base curve classes ---
 
 
 class CurveAdapter:
 
-    def __init__(self,
-                 curve: Curve,
-                 *,
-                 call: Union[str, Callable] = None,
-                 invisible: bool = None,
-                 pre: Callable = None,
-                 inv: Callable = None):
+    def __init__(self, curve: Curve, *,
+                 invisible: bool = None):
         r"""Wrapper class for a curve (i.e. callable)
 
         :param curve: inner curve object $\phi: X \to Y$ to wrap around.
             This argument can be a single value $v$ which results in constant
             function $\phi(x)=v$.
-        :param call: name of method of to be invoked when wrapper is invoked
-            via **__call__**
-            (optional, default is **__call__**)
         :param invisible: boolean flag to control string representation.
             If **True** both **str** and **repr** is forwarded to **curve**.
             (optional, default is **False** if **curve** is callable
             else **True**)
-        :param pre: argument transformation function $\theta$
-            performed prior **curve** is called,
-            i.e. $\phi(\theta(x))$.
-            (optional, default is $\theta(x) = id(x) = x$)
-        :param inv: inverse $\theta^{-1}$  of argument transformation
-            function $\theta$. $\theta^{-1}$ is performed to transform
-            **curve** parameter arguments is called,
-            i.e. $\theta^{-1}(\\theta(x)))$.
-            (optional, default is $\theta^{-1}(x) = id(x) = x$)
+
         """
         self.curve = curve
-        self.call = call or getattr(self.__class__, 'call', None)
         self.invisible = invisible
-        self.pre = pre
-        self.inv = inv
 
         if invisible is None and not callable(curve):
             # view constant curve as a constant value
             self.invisible = True
-
-        self._pre = pre or (lambda _: _)
-        self._inv = pre or (lambda _: _)
 
     def __copy__(self):
         _, kwargs = attr(self)
@@ -73,6 +51,9 @@ class CurveAdapter:
     def __bool__(self):
         return bool(self.curve)
 
+    def __float__(self):
+        return float(self.curve)
+
     def __eq__(self, other):
         if isinstance(other, self.__class__):
             return self.curve == other.curve
@@ -80,30 +61,25 @@ class CurveAdapter:
 
     @vectorize()
     def __call__(self, *_, **__):
-        _ = tuple(self._pre(x) for x in _)
-        __ = dict((self._pre(x), v) for x, v in __.items())
-        if callable(self.call):
-            return self.call(self.curve, *_, **__)
-        _attr = getattr(self.curve, str(self.call), self.curve)
-        if callable(_attr):
-            return _attr(*_, **__)
-        return _attr
+        if callable(self.curve):
+            return self.curve(*_, **__)
+        return self.curve
 
     def __getitem__(self, item):
         if hasattr(self.curve, '__getitem__'):
-            return self.curve.__getitem__(self._pre(item))
+            return self.curve.__getitem__(item)
 
     def __setitem__(self, key, value):
         if hasattr(self.curve, '__setitem__'):
-            return self.curve.__setitem__(self._pre(key), value)
+            return self.curve.__setitem__(key, value)
 
     def __delitem__(self, key):
         if hasattr(self.curve, '__delitem__'):
-            return self.curve.__delitem__(self._pre(key))
+            return self.curve.__delitem__(key)
 
     def __iter__(self):
         if hasattr(self.curve, '__iter__'):
-            return iter(map(self._inv, self.curve.__iter__()))
+            return self.curve.__iter__()
         return iter(tuple())
 
     def __len__(self):
@@ -112,11 +88,11 @@ class CurveAdapter:
         return 0
 
     def __contains__(self, item):
-        return self._pre(item) in self.curve
+        return item in self.curve
 
     def keys(self):
         if hasattr(self.curve, 'keys'):
-            return iter(map(self._inv, self.curve.keys()))
+            return self.curve.keys()
         return ()
 
     def values(self):
@@ -131,16 +107,47 @@ class CurveAdapter:
 
     def pop(self, item):
         if hasattr(self.curve, 'pop'):
-            return self.curve.pop(self._pre(item))
+            return self.curve.pop(item)
 
     def update(self, data):
         if hasattr(self.curve, 'update'):
-            data = dict((self._pre(k), v) for k, v in data.items())
             return self.curve.update(data)
 
     def get(self, item, default=None):
         if hasattr(self.curve, 'get'):
             return self.curve.get(item, default)
+
+
+class CallAdapter(CurveAdapter):
+
+    def __init__(self, curve: Curve, *,
+                 invisible: bool = None,
+                 call: Union[str, Callable] = None):
+        r"""Wrapper class for a curve (i.e. callable)
+
+        :param curve: inner curve object $\phi: X \to Y$ to wrap around.
+            This argument can be a single value $v$ which results in constant
+            function $\phi(x)=v$.
+        :param invisible: boolean flag to control string representation.
+            If **True** both **str** and **repr** is forwarded to **curve**.
+            (optional, default is **False** if **curve** is callable
+            else **True**)
+        :param call: name of method of to be invoked when wrapper is invoked
+            via **__call__**
+            (optional, default is **__call__**)
+
+        """
+        super().__init__(curve, invisible=invisible)
+        self.call = call or getattr(self.__class__, 'call', None)
+
+    @vectorize()
+    def __call__(self, *_, **__):
+        if callable(self.call):
+            return self.call(self.curve, *_, **__)
+        _attr = getattr(self.curve, str(self.call), self.curve)
+        if callable(_attr):
+            return _attr(*_, **__)
+        return _attr
 
 
 class CurveAlgebra(CurveAdapter):
@@ -152,17 +159,15 @@ class CurveAlgebra(CurveAdapter):
 
     def __init__(self,
                  curve: Union[Curve, CurveAdapter],
+                 *,
                  add: Iterable[Union[Curve, CurveAdapter]] = (),
                  sub: Iterable[Union[Curve, CurveAdapter]] = (),
                  mul: Iterable[Union[Curve, CurveAdapter]] = (),
                  div: Iterable[Union[Curve, CurveAdapter]] = (),
-                 spread: CurveValue = None,
-                 leverage: CurveValue = None,
+                 spread: float = None,
+                 leverage: float = None,
                  inplace: bool = False,
-                 call: Union[str, Callable] = None,
-                 invisible: bool = False,
-                 pre: Callable = None,
-                 inv: Callable = None):
+                 invisible: bool = False):
         """
 
         :param curve:
@@ -173,10 +178,7 @@ class CurveAlgebra(CurveAdapter):
         :param spread:
         :param leverage:
         :param inplace:
-        :param call:
         :param invisible:
-        :param pre:
-        :param inv:
         """
         self._inplace = inplace
 
@@ -196,9 +198,7 @@ class CurveAlgebra(CurveAdapter):
         self.mul = [init_curve(m) for m in mul]
         self.div = [init_curve(d) for d in div]
 
-        curve = init_curve(curve)
-        super().__init__(curve, call=call, invisible=invisible,
-                         pre=pre, inv=inv)
+        super().__init__(init_curve(curve), invisible=invisible)
 
     @vectorize()
     def __call__(self, *_, **__):
@@ -270,12 +270,12 @@ class CurveAlgebra(CurveAdapter):
 # --- curve_wrapper builder functions ---
 
 
-def init_curve(curve: Curve):
-    if isinstance(curve, CurveAdapter):
+def init_curve(curve: Curve, curve_type=CurveAdapter):
+    if isinstance(curve, curve_type):
         return curve
-    return CurveAdapter(curve, invisible=True)
+    return curve_type(curve, invisible=True)
 
 
 def call_wrapper_builder(name: str, function: str = None) -> type:
     """generate call_wrapper subtypes by names"""
-    return type(name, (CurveAdapter,), {'call': function or name})
+    return type(name, (CallAdapter,), {'call': function or name})

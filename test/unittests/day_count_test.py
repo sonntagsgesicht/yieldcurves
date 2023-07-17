@@ -3,7 +3,8 @@ from datetime import date
 
 from businessdate import BusinessRange, BusinessDate
 
-from yieldcurves.daycount import day_count, DAYS_IN_YEAR, YearFraction
+from yieldcurves.yieldcurves.daycount import DAYS_IN_YEAR, \
+    YearFraction, _day_count as day_count
 from .curve_tests import lin
 
 
@@ -55,7 +56,7 @@ class YearFractionUnitTests(TestCase):
         self.assertEqual(YearFraction(domain=[101.]).origin, 101.)
         t = -1
         d = lin(t, 10, 0.2)
-        yf = YearFraction(t)
+        yf = YearFraction(origin=t)
         self.assertEqual(yf(None), None)
         self.assertEqual(yf.inv(None), None)
         self.assertRaises(NotImplementedError, yf.inv, 3.33)
@@ -64,14 +65,14 @@ class YearFractionUnitTests(TestCase):
             b = day_count(s, e)
             self.assertEqual(a, b)
         s = t + 3.3
-        yf = YearFraction(s, domain=d)
+        yf = YearFraction(origin=s, domain=d)
         for e in d:
             a = yf(e)
             b = day_count(s, e)
             self.assertEqual(a, b)
             self.assertAlmostEqual(yf.inv(a), e)
         dc = (lambda s, e: s + e)
-        yf = YearFraction(101, day_count=dc, domain=d)
+        yf = YearFraction(origin=101, day_count=dc, domain=d)
 
         for s, e in zip(d[:-1], d[1:]):
             a = yf(s, e)
@@ -94,12 +95,12 @@ class YearFractionUnitTests(TestCase):
             YearFraction(date_type=BusinessDate).origin, BusinessDate())
         t = BusinessDate(20231101)
         d = BusinessRange(t, t + '5y', '4m')
-        yf = YearFraction(t)
+        yf = YearFraction(origin=t)
         for s, e in zip(d[:-1], d[1:]):
             a = yf(s, e)
             b = day_count(s, e)
             self.assertEqual(a, b)
-        yf = YearFraction(s, domain=d)
+        yf = YearFraction(origin=s, domain=d)
         for e in d:
             a = yf(e)
             b = day_count(s, e)

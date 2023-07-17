@@ -1,5 +1,5 @@
 
-from test.unittests.analytics_wrapper_tests import IdentityUnitTests, Prob, \
+from test.unittests._analytics_wrapper_tests import IdentityUnitTests, Prob, \
     Marginal, ProbM, lin, ascii_plot, Intensity, Cash, ZeroC, Cv
 
 self = IdentityUnitTests()

@@ -61,9 +61,11 @@ class RateCurveUnitTests(TestCase):
                 self.assertAlmostEqual(a, b, places=places, msg=str(x))
 
                 a = curve_a.get_cash_rate(x)
-                curve_b.curve.frequency = None
+                f = curve_b.curve.frequency
+                curve_b.curve.cash.frequency = None
                 b = curve_b.get_cash_rate(x)
                 self.assertAlmostEqual(a, b, places=places, msg=str(x))
+                curve_b.curve.frequency = f
 
     def test_zero_rate_curve(self):
         dcf_curve = dcf.ZeroRateCurve(

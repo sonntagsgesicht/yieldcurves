@@ -28,16 +28,17 @@ import logging
 logging.getLogger(__name__).addHandler(logging.NullHandler())
 
 # todo:
+#  add docs for new CurveAdapter
 #  add sabr model
 #  add global calibration using 'lmfit.minimize' or 'scipy.optimize.leastsq'
 
 from . import compounding  # noqa E401 E402
 from . import interpolation  # noqa E401 E402
 from . import analytics  # noqa E401 E402
-from .tools.curve import init_curve  # noqa E401 E402
-from .analytics.parametric import NelsonSiegelSvensson  # noqa E401 E402
-from .curve import PriceCurve, YieldCurve, FxRateCurve, ZeroRateCurve, \
-    ShortRateCurve, CashRateCurve, DiscountFactorCurve, \
+from .tools.adapter import init_curve  # noqa E401 E402
+from .parametric import NelsonSiegelSvensson  # noqa E401 E402
+from .yieldcurves.yieldcurves import PriceCurve, YieldCurve, FxRateCurve, \
+    ZeroRateCurve, ShortRateCurve, CashRateCurve, \
     DefaultProbabilityCurve, SurvivalProbabilityCurve, \
     MarginalSurvivalProbabilityCurve, FlatIntensityCurve, \
     HazardRateCurve  # noqa E401 E402

@@ -4,7 +4,7 @@ from collections import UserDict
 from vectorizeit import vectorize
 
 
-from ..tools.repr import representation
+from .tools.repr import representation
 
 
 class NelsonSiegelSvensson(UserDict):

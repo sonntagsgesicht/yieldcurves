@@ -1,8 +1,9 @@
 from ..tools.adapter import CurveAdapter, init_curve
 from .rate import CompoundingRate, CompoundingFactor
-from .price import PriceAdapter, PriceYieldAdapter
-from .interest import CashRateAdapter, ShortRateAdapter, \
-    CompoundingShortRateAdapter, CompoundingCashRateAdapter
+from .price import Price, PriceYield
+from .interest import CashRate, ShortRate, \
+    CompoundingShortRate, CompoundingCashRate
+from .credit import CompoundingMarginalProb, DefaultProb
 
 
 class PriceApiAdapter(CurveAdapter):
@@ -10,10 +11,10 @@ class PriceApiAdapter(CurveAdapter):
     def __init__(self, curve, spot=1.0, fx=1.0, foreign=0.0,
                  *, invisible=None):
         super().__init__(init_curve(curve), invisible=invisible)
-        self._price = PriceAdapter(self.curve, spot, fx, foreign,
-                                   invisible=True)
-        self._yield = PriceYieldAdapter(self.curve, spot, fx, foreign,
-                                        invisible=True)
+        self._price = Price(self.curve, spot, fx, foreign,
+                            invisible=True)
+        self._yield = PriceYield(self.curve, spot, fx, foreign,
+                                 invisible=True)
 
     def price(self, x):
         return self._price(x)
@@ -30,9 +31,9 @@ class ZeroRateApiAdapter(CurveAdapter):
         self.eps = eps
         self.zero = CompoundingRate(self.curve, frequency, invisible=True)
         self.df = CompoundingFactor(self.zero, frequency, invisible=True)
-        self.cash = CashRateAdapter(self.zero, frequency, invisible=True)
-        self.short = ShortRateAdapter(self.zero, frequency, eps,
-                                       invisible=True)
+        self.cash = CashRate(self.zero, frequency, invisible=True)
+        self.short = ShortRate(self.zero, frequency, eps,
+                               invisible=True)
 
 
 class DiscountFactorApiAdapter(ZeroRateApiAdapter):
@@ -45,7 +46,7 @@ class DiscountFactorApiAdapter(ZeroRateApiAdapter):
 class ShortRateApiAdapter(ZeroRateApiAdapter):
 
     def __init__(self, curve, frequency=None, eps=None, invisible=None):
-        curve = CompoundingShortRateAdapter(curve, frequency, invisible=True)
+        curve = CompoundingShortRate(curve, frequency, invisible=True)
         super().__init__(curve, frequency, eps, invisible=invisible)
         self.short = self.curve
 
@@ -54,52 +55,56 @@ class CashRateApiAdapter(ZeroRateApiAdapter):
 
     def __init__(self, curve, frequency=None, eps=None, invisible=None):
         cash = curve
-        curve = CompoundingCashRateAdapter(curve, frequency, invisible=True)
+        curve = CompoundingCashRate(curve, frequency, invisible=True)
         super().__init__(curve, frequency, eps, invisible=invisible)
         self.cash = lambda x, y=None: cash(x)
 
 
-class _Api(CurveAdapter):
+class CreditApiAdapter(CurveAdapter):
 
-    adapter = None
+    curve = DiscountFactorApiAdapter(0.0)
 
-    def __init__(self, curve, **__):
-        curve = self.adapter(curve, invisible=None)
-        super().__init__(curve, **__)
-
-    def prob(self, x, y=None):
-        return self.curve.df(x, y)
-
-    def pd(self, x, y=None):
-        return 1. - self.prob(x, y)
-
-    def marginal(self, x):
-        return self.prob(x, x + 1.)
-
-    def intensity(self, x, y=None):
-        return self.curve.zero(x, y)
-
-    def hazard_rate(self, x):
-        return self.curve.short(x)
+    def __init__(self, curve, invisible=None):
+        super().__init__(init_curve(curve), invisible=invisible)
+        self.prob = self.curve.df
+        self.intensity = self.curve.zero
+        self.hazard_rate = self.curve.short
+        # self.marginal = MarginalProb(self.curve.df, invisible=True)
+        # self.pd = DefaultProb(self.curve.df, invisible=True)
 
 
-FlatIntensityApiAdapter = \
-    type('FlatIntensityApiAdapter', (_Api, ), {'adapter': ZeroRateApiAdapter})
+class SurvivalProbabilityApiAdapter(CreditApiAdapter):
 
-HazardRateApiAdapter = \
-    type('HazardRateApiAdapter', (_Api, ShortRateApiAdapter), {})
-
-
-SurvivalProbabilityApiAdapter = \
-    type('SurvivalProbabilityApiAdapter', (_Api, DiscountFactorApiAdapter), {})
+    def __init__(self, curve, eps=None, invisible=None):
+        curve = DiscountFactorApiAdapter(curve, eps=eps, invisible=True)
+        super().__init__(curve, invisible=invisible)
 
 
-class MarginalSurvivalProbabilityApiAdapter(_Api, DiscountFactorApiAdapter):
+class FlatIntensityApiAdapter(CreditApiAdapter):
 
-    def __init__(self, curve):
+    def __init__(self, curve, eps=None, invisible=None):
+        curve = ZeroRateApiAdapter(curve, eps=eps, invisible=True)
+        super().__init__(curve, invisible=invisible)
 
-        super().__init__(curve)
+
+class HazardRateApiAdapter(CreditApiAdapter):
+
+    def __init__(self, curve, eps=None, invisible=None):
+        curve = ShortRateApiAdapter(curve, eps=eps, invisible=True)
+        super().__init__(curve, invisible=invisible)
 
 
-class DefaultProbabilityApiAdapter(CurveAdapter):
-    pass
+class MarginalSurvivalProbabilityApiAdapter(CreditApiAdapter):
+
+    def __init__(self, curve, eps=None, invisible=None):
+        curve = CompoundingMarginalProb(curve, invisible=True)
+        curve = DiscountFactorApiAdapter(curve, eps=eps, invisible=True)
+        super().__init__(curve, invisible=invisible)
+
+
+class DefaultProbabilityApiAdapter(CreditApiAdapter):
+
+    def __init__(self, curve, eps=None, invisible=None):
+        curve = DefaultProb(curve, invisible=True)
+        curve = DiscountFactorApiAdapter(curve, eps=eps, invisible=True)
+        super().__init__(curve, invisible=invisible)

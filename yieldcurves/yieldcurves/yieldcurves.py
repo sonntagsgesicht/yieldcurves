@@ -15,6 +15,8 @@ from .api import RateApi, FxApi, PriceApi, CreditApi
 
 class InterpolatedDateCurve(CurveAdapter):
 
+    curve = CurveAdapter(0.0)
+
     def __init__(self, domain=(), data=(), interpolation=linear,
                  origin=None, day_count=None, invisible=None, **__):
         r"""
@@ -59,50 +61,6 @@ class InterpolatedDateCurve(CurveAdapter):
             return iter(self.domain)
         raise ValueError(f'domain missmatch between '
                          f'{self.domain} and {self.curve}')
-
-
-class _RateCurve(InterpolatedDateCurve, RateApi):
-
-    adapter = None
-
-    def __init__(self, domain=(), data=(), interpolation=linear,
-                 origin=None, day_count=None, forward_tenor=None, **__):
-        r"""
-        :param domain: either curve points $t_1 \dots t_n$
-            or a curve object $C$
-        :param data: either curve values $y_1 \dots y_n$
-            or a curve object $C$
-        :param interpolation: (optional) interpolation scheme
-        :param origin: (optional) curve points origin $t_0$
-        :param day_count: (optional) day count convention function $\tau(s, t)$
-        :param forward_tenor: (optional) forward rate tenor period $\tau^*$
-
-        If **data** is a |RateCurve| instance $C$,
-        it is casted to this new class type
-        with domain grid given by **domain**.
-
-        If **domain** is a |RateCurve| instance $C$,
-        it is casted to this new class type
-        with domain grid given **domain** property of $C$.
-
-        Further arguments
-        **interpolation**, **origin**, **day_count**, **forward_tenor**
-        will replace the ones given by $C$ if not given explictly.
-
-        """
-        super().__init__(domain, data, interpolation=interpolation,
-                         origin=origin, day_count=day_count, **__)
-        frequency = 1 / self._pre(origin + forward_tenor)
-        self.curve = self.adapter(self.curve, frequency, invisible=True)
-        self.forward_tenor = forward_tenor
-
-
-ZeroRateCurve = \
-    type('ZeroRateCurve', (_RateCurve,), {'adapter': ZeroRateApiAdapter})
-ShortRateCurve = \
-    type('ShortRateCurve', (_RateCurve,), {'adapter': ShortRateApiAdapter})
-CashRateCurve = \
-    type('CashRateCurve', (_RateCurve,), {'adapter': CashRateApiAdapter})
 
 
 class PriceCurve(InterpolatedDateCurve, PriceApi):
@@ -182,6 +140,50 @@ class FxRateCurve(InterpolatedDateCurve, FxApi):
             foreign=init_curve(foreign).curve, invisible=True)
         self.domestic = domestic
         self.foreign = foreign
+
+
+class _RateCurve(InterpolatedDateCurve, RateApi):
+
+    adapter = None
+
+    def __init__(self, domain=(), data=(), interpolation=linear,
+                 origin=None, day_count=None, forward_tenor=None, **__):
+        r"""
+        :param domain: either curve points $t_1 \dots t_n$
+            or a curve object $C$
+        :param data: either curve values $y_1 \dots y_n$
+            or a curve object $C$
+        :param interpolation: (optional) interpolation scheme
+        :param origin: (optional) curve points origin $t_0$
+        :param day_count: (optional) day count convention function $\tau(s, t)$
+        :param forward_tenor: (optional) forward rate tenor period $\tau^*$
+
+        If **data** is a |RateCurve| instance $C$,
+        it is casted to this new class type
+        with domain grid given by **domain**.
+
+        If **domain** is a |RateCurve| instance $C$,
+        it is casted to this new class type
+        with domain grid given **domain** property of $C$.
+
+        Further arguments
+        **interpolation**, **origin**, **day_count**, **forward_tenor**
+        will replace the ones given by $C$ if not given explictly.
+
+        """
+        super().__init__(domain, data, interpolation=interpolation,
+                         origin=origin, day_count=day_count, **__)
+        frequency = 1 / self._pre(origin + forward_tenor)
+        self.curve = self.adapter(self.curve, frequency, invisible=True)
+        self.forward_tenor = forward_tenor
+
+
+ZeroRateCurve = \
+    type('ZeroRateCurve', (_RateCurve,), {'adapter': ZeroRateApiAdapter})
+ShortRateCurve = \
+    type('ShortRateCurve', (_RateCurve,), {'adapter': ShortRateApiAdapter})
+CashRateCurve = \
+    type('CashRateCurve', (_RateCurve,), {'adapter': CashRateApiAdapter})
 
 
 class _CreditCurve(InterpolatedDateCurve, CreditApi):

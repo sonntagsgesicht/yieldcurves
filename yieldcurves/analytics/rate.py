@@ -20,11 +20,11 @@ class CompoundingFactor(CurveAdapter):
             return self.curve(x, y)
         if x == y:
             return 1.0
-        # if isinstance(self.curve, CompoundingRate):
-        #     return compounding_factor(self.curve(x, y), y - x, self.frequency)
-        fx = compounding_factor(self.curve(x), x, self.frequency)
         if y is None:
-            return fx
+            return compounding_factor(self.curve(x), x, self.frequency)
+        if isinstance(self.curve, CompoundingRate):
+            return compounding_factor(self.curve(x, y), y - x, self.frequency)
+        fx = compounding_factor(self.curve(x), x, self.frequency)
         fy = compounding_factor(self.curve(y), y, self.frequency)
         return fy / fx
 

@@ -8,7 +8,7 @@ from ..tools import integrate, EPS
 from .rate import CompoundingRate
 
 
-class ShortRateAdapter(CurveAdapter):
+class ShortRate(CurveAdapter):
 
     def __init__(self, curve, frequency=None, eps=None, *, invisible=None):
         """short curve from discount factor curve
@@ -42,7 +42,7 @@ class ShortRateAdapter(CurveAdapter):
         return continuous_rate(fy / fx, y - x)
 
 
-class CompoundingShortRateAdapter(CurveAdapter):
+class CompoundingShortRate(CurveAdapter):
 
     def __init__(self, curve, frequency=None, *, invisible=None):
         super().__init__(init_curve(curve), invisible=invisible)
@@ -61,7 +61,7 @@ class CompoundingShortRateAdapter(CurveAdapter):
         return r
 
 
-class CashRateAdapter(CurveAdapter):
+class CashRate(CurveAdapter):
 
     def __init__(self, curve, frequency=None, invisible=None):
         super().__init__(init_curve(curve), invisible=invisible)
@@ -75,7 +75,7 @@ class CashRateAdapter(CurveAdapter):
         return simple_rate(fy / fx, y - x)
 
 
-class CompoundingCashRateAdapter(CurveAdapter):
+class CompoundingCashRate(CurveAdapter):
 
     def __init__(self, curve, frequency=None, *, invisible=None):
         super().__init__(init_curve(curve), invisible=invisible)

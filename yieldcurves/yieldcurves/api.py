@@ -1,8 +1,12 @@
 
 from ..tools.fulladapter import CurveAdapter
+from ..analytics.api import ZeroRateApiAdapter, PriceApiAdapter, \
+    SurvivalProbabilityApiAdapter
 
 
 class RateApi(CurveAdapter):
+
+    curve = ZeroRateApiAdapter(0.0)
 
     def get_discount_factor(self, start, stop=None):
         r"""discounting factor for future cashflows
@@ -176,7 +180,7 @@ class RateApi(CurveAdapter):
         if not date_list:
             if step is None:
                 step = getattr(self, 'forward_tenor', None) \
-                       or self.__class__.forward_tenor
+                       or getattr(self.__class__, 'forward_tenor', None)
             date_list = [start]
             while date_list[-1] + step < stop:
                 date_list.append(date_list[-1] + step)
@@ -187,6 +191,8 @@ class RateApi(CurveAdapter):
 
 
 class FxApi(CurveAdapter):
+
+    curve = PriceApiAdapter(0.0)
 
     def get_fx_rate(self, value_date):
         """ forward exchange rate at **value_date**
@@ -203,6 +209,8 @@ class FxApi(CurveAdapter):
 
 
 class PriceApi(CurveAdapter):
+
+    curve = PriceApiAdapter(0.0)
 
     def get_forward_price(self, value_date):
         """ asset forward price at **value_date**
@@ -232,6 +240,8 @@ class PriceApi(CurveAdapter):
 
 class CreditApi(CurveAdapter):
 
+    curve = SurvivalProbabilityApiAdapter(0.0)
+
     def get_default_prob(self, start, stop=None):
         r"""default probability of credit curve
 
@@ -259,7 +269,7 @@ class CreditApi(CurveAdapter):
 
         """
         start, stop = self._pre(start), self._pre(stop)
-        return self.curve.pd(start, stop)
+        return 1. - self.curve.prob(start, stop)
 
     def get_survival_prob(self, start, stop=None):
         r"""survival probability of credit curve
@@ -317,7 +327,7 @@ class CreditApi(CurveAdapter):
 
         """
         start = self._pre(start)
-        return self.curve.marginal(start)
+        return self.curve.prob(start, start + 1.0)
 
     def get_flat_intensity(self, start, stop=None):
         r"""intensity value of credit curve

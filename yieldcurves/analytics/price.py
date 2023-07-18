@@ -4,7 +4,7 @@ from ..tools.adapter import CurveAdapter, init_curve
 from .rate import CompoundingFactor
 
 
-class PriceAdapter(CurveAdapter):
+class Price(CurveAdapter):
     """domestic price of (optional foreign) assets from spot price and fx"""
 
     def __init__(self, curve, spot=1.0, fx=1.0, foreign=0.0,
@@ -29,11 +29,11 @@ class PriceAdapter(CurveAdapter):
         return s * fx / self.curve(z)  # price at zero
 
 
-class PriceYieldAdapter(CurveAdapter):
+class PriceYield(CurveAdapter):
     """domestic price yield of (opt. foreign) assets from spot price and fx"""
     def __init__(self, curve, spot=1.0, fx=1.0, foreign=0.0,
                  *, invisible=None):
-        curve = PriceAdapter(
+        curve = Price(
             curve, spot=spot, fx=fx, foreign=foreign, invisible=invisible)
         super().__init__(curve, invisible=invisible)
 

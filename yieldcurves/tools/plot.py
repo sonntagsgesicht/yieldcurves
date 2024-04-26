@@ -10,19 +10,21 @@
 # License:  Apache License 2.0 (see LICENSE file)
 
 
-import matplotlib.pyplot as plt
-import matplotlib
+from matplotlib import use, pyplot as plt
 
+# import matplotlib
 # matplotlib.use('WebAgg')
 # matplotlib.use('TkAgg')
 # matplotlib.use('QtCairo')
 # matplotlib.use('QtAgg')
 # matplotlib.use('module://backend_interagg')
-matplotlib.use('MacOSX')
+# matplotlib.use('MacOSX')
 
 
-def plot(x, *curve, legend=True):
-    fig, ax = plt.subplots(figsize=(10, 5))
+def plot(x, *curve, legend=True, figsize=(10, 5), backend=None):
+    if backend:
+        use(backend)
+    fig, ax = plt.subplots(figsize=figsize)
     x = tuple(x)
     for c in curve:
         y = [c(_) for _ in x]

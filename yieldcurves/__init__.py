@@ -32,12 +32,14 @@ logging.getLogger(__name__).addHandler(logging.NullHandler())
 #  add sabr model
 #  add global calibration using 'lmfit.minimize' or 'scipy.optimize.leastsq'
 
+from . import analytics  # noqa E401 E402
 from . import compounding  # noqa E401 E402
 from . import interpolation  # noqa E401 E402
-from . import analytics  # noqa E401 E402
-from .tools.adapter import init_curve  # noqa E401 E402
-from .parametric import NelsonSiegelSvensson  # noqa E401 E402
-from .yieldcurves.yieldcurves import PriceCurve, YieldCurve, FxRateCurve, \
+from . import parametric  # noqa E401 E402
+
+from .adapter import *  # noqa E401 E402
+
+from .legacy_yc import PriceCurve, YieldCurve, FxRateCurve, \
     ZeroRateCurve, ShortRateCurve, CashRateCurve, \
     DefaultProbabilityCurve, SurvivalProbabilityCurve, \
     MarginalSurvivalProbabilityCurve, FlatIntensityCurve, \

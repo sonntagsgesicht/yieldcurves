@@ -61,21 +61,21 @@ def continuous_rate(df, period_fraction):
 
 
 @vectorize(['rate_value', 'maturity_value'], zipped=True)
-def periodic_compounding(rate_value, maturity_value, period_value):
+def periodic_compounding(rate_value, maturity_value, frequency):
     r"""periodically compounded discount factor
 
     :param rate_value: interest rate $r$
     :param maturity_value: loan maturity $\tau$
-    :param period_value: number of interest rate periods $m$
+    :param frequency: number of interest rate periods $m$
     :return: $(1+\frac{r}{m})^{-\tau\cdot m}$
     """
-    if period_value is None:
+    if frequency is None:
         return continuous_compounding(rate_value, maturity_value)
-    if period_value == 0:
+    if frequency == 0:
         return simple_compounding(rate_value, maturity_value)
 
-    ex = -period_value * float(maturity_value)
-    return pow(1.0 + float(rate_value) / period_value, ex)
+    ex = -frequency * float(maturity_value)
+    return pow(1.0 + float(rate_value) / frequency, ex)
 
 
 @vectorize(['rate_value', 'maturity_value'], zipped=True)
@@ -147,22 +147,22 @@ def daily_compounding(rate_value, maturity_value):
 
 
 @vectorize(['rate_value', 'maturity_value'], zipped=True)
-def compounding_factor(rate_value, maturity_value, period_value=None):
+def compounding_factor(rate_value, maturity_value, frequency=None):
     r"""compounded discount factor
 
     :param rate_value: interest rate $r$ per year
     :param maturity_value: maturity $\tau$ in years
-    :param period_value: number of interest rate periods per year
+    :param frequency: number of interest rate periods per year
         as in |periodic_compounding|
-        if **period_value** is **None** |continuous_compounding| is used
+        if **frequency** is **None** |continuous_compounding| is used
         and if **period_value** is **0** |simple_compounding| is used.
     :return:
     """
-    if period_value is None:
+    if frequency is None or frequency < 0:
         return continuous_compounding(rate_value, maturity_value)
-    if period_value == 0:
+    if frequency == 0:
         return simple_compounding(rate_value, maturity_value)
-    return periodic_compounding(rate_value, maturity_value, period_value)
+    return periodic_compounding(rate_value, maturity_value, frequency)
 
 
 @vectorize(['df', 'period_fraction'], zipped=True)
@@ -176,7 +176,7 @@ def compounding_rate(df, period_fraction, frequency):
         if **frequency** is **None** |continuous_rate| is used
         and if **frequency** is **0** |simple_rate| is used.
     """
-    if frequency is None:
+    if frequency is None or frequency < 0:
         return continuous_rate(df, period_fraction)
     if frequency == 0:
         return simple_rate(df, period_fraction)

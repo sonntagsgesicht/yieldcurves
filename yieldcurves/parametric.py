@@ -1,4 +1,4 @@
-from collections import UserDict
+
 from datetime import datetime
 import io
 from math import exp
@@ -7,8 +7,7 @@ import xml.etree.ElementTree as ET  # nosec B405
 import requests
 from vectorizeit import vectorize
 
-from .tools.repr import representation
-
+from .tools.repr import ReprAdapter
 
 """
 _data = {
@@ -41,7 +40,7 @@ def nss_spot(x,
 
 @vectorize(keys='x')
 def nss_short(x,
-             beta0=0.0, beta1=0.0, beta2=0.0, beta3=0.0, tau1=1.0, tau2=1.0):
+              beta0=0.0, beta1=0.0, beta2=0.0, beta3=0.0, tau1=1.0, tau2=1.0):
     x = float(x) or 1e-8
     a = exp(-x / tau1)
     b = a * x / tau1
@@ -73,40 +72,50 @@ def nss_download():
     return download
 
 
-class NelsonSiegelSvensson(UserDict):
-
+class NelsonSiegelSvensson(ReprAdapter):
     _download = dict()
 
     def __init__(self, beta0=0.0, beta1=0.0, beta2=0.0, beta3=0.0,
-                 tau1=1.0, tau2=1.0):
-        super().__init__(beta0=beta0, beta1=beta1, beta2=beta2, beta3=beta3,
-                         tau1=tau1, tau2=tau2)
-        self.short_rate = False
-        self.date = None
+                 tau1=1.0, tau2=1.0, date=None, short_rate=None):
+        self.beta0 = beta0
+        self.beta1 = beta1
+        self.beta2 = beta2
+        self.beta3 = beta3
+        self.tau1 = tau1
+        self.tau2 = tau2
+        self.short_rate = short_rate
+        self.date = date
 
     def __call__(self, x):
-        return nss_short(x, **self) if self.short_rate else nss_spot(x, **self)
-
-    def __str__(self):
-        s = f" as of {self.date}" if self.date else ''
-        return representation(self, **self.data, rstyle=False) + s
-
-    def __repr__(self):
-        if self.date:
-            n = self.__class__.__qualname__
-            return f"{n}.download({self.date})"
-        return representation(self, **self.data, rstyle=False)
+        params = {
+            'beta0': self.beta0,
+            'beta1': self.beta1,
+            'beta2': self.beta2,
+            'beta3': self.beta3,
+            'tau1': self.tau1,
+            'tau2': self.tau2
+        }
+        if self.short_rate:
+            return nss_short(x, **params)
+        return nss_spot(x, **params)
 
     @classmethod
     def download(cls, date=None):
         if not cls._download:
-            cls._download = nss_download()
+            cls._download = dict(nss_download().items())
 
         if date:
             if isinstance(date, int):
                 date = tuple(cls._download)[date]
             if isinstance(date, datetime):
                 date = date.strftime('%Y-%m-%d')
-            obj = cls(**cls._download[date])
+            obj = cls(**cls._download[date], date=date)
             obj.date = date
             return obj
+
+    @classmethod
+    @property
+    def dates(cls):
+        if not cls._download:
+            cls._download = dict(nss_download().items())
+        return tuple(cls._download)

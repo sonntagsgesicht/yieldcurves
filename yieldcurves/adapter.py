@@ -1,53 +1,57 @@
-import re
 
-from vectorizeit import vectorize
+from typing import Callable, Union
 
+from .tools.repr import ReprAdapter
 from .analytics import price, price_yield, compounding_rate, \
     compounding_factor, cash_rate, short_rate, marginal_prob, default_prob, \
     fx_rate, swap_annuity, swap_par_rate, instantaneous_vol, terminal_vol
 
-_p1 = re.compile(r'(.)([A-Z][a-z]+)')
-_p2 = re.compile(r'([a-z0-9])([A-Z])')
 
+class Const:
 
-class _CurveAdapter:
-
-    _call = '__call__'
-
-    def __init__(self, curve):
+    def __init__(self, curve: Callable):
         self.curve = curve
 
-    def __call__(self, x, y=None):
-        return getattr(self.curve, self._call)(x, y)
+    def __call__(self, x):
+        return self.curve
+
+    def __str__(self):
+        return str(self.curve)
+
+    def __repr__(self):
+        return repr(self.curve)
 
 
-def _call_adapter(name: str, *classes, attr='') -> type:
-    classes += (_CurveAdapter,)
-    attr = attr or _p2.sub(r'\1_\2', _p1.sub(r'\1_\2', name)).lower()
-    return type(name, classes, {'_call': attr})
+def init(curve: Union[Callable, float]):
+    return curve if callable(curve) else Const(curve)
 
 
 # --- PriceAdapter ---
 
 
-class PriceAdapter:
+class PriceAdapter(ReprAdapter):
 
     def __init__(self, curve, *, spot=1.0):
-        self.curve = curve
+        self.curve = init(curve)
         self.spot = spot
 
+    @property
+    def _spot(self):
+        return self.spot or \
+            getattr(self.curve, 'spot', None) or \
+            getattr(self.curve, '_spot', None)
+
     def price(self, x, y=None):
-        return price(self.price_yield, x, spot=self.spot)
+        return price(self.price_yield, x, spot=self._spot)
 
     def price_yield(self, x, y=None):
         return price_yield(self.price, x, y)
 
 
-Price = _call_adapter('Price', PriceAdapter)
-PriceYield = _call_adapter('PriceYield', PriceAdapter)
-
-
 class AssetPrice(PriceAdapter):
+
+    def __call__(self, x, y=None):
+        return self.price(x, y)
 
     def price(self, x, y=None):
         return self.curve(x)
@@ -55,57 +59,116 @@ class AssetPrice(PriceAdapter):
 
 class AssetPriceYield(PriceAdapter):
 
+    def __call__(self, x, y=None):
+        return self.price_yield(x, y)
+
     def price_yield(self, x, y=None):
         if y is None:
             return self.curve(x)
         return super().price_yield(x, y)
 
 
-class ForeignExchangeRate:
+# --- ForeignExchangeRateAdapter ---
 
-    def __init__(self, curve, *, spot=1.0, foreign=0.0):
-        self.curve = curve
+
+class ForeignExchangeRateAdapter(ReprAdapter):
+
+    def __init__(self, curve, *, spot=None, foreign=None):
+        self.curve = init(curve)
         self.spot = spot
         self.foreign = foreign
 
+    @property
+    def _spot(self):
+        return self.spot or \
+            getattr(self.curve, 'spot', None) or \
+            getattr(self.curve, '_spot', None) or \
+            1.0
+
+    @property
+    def _foreign(self):
+        return self.foreign or \
+            getattr(self.curve, 'foreign', None) or \
+            getattr(self.curve, '_foreign', None) or \
+            0.0
+
     def fx(self, x, y=None):
-        return fx_rate(self.foreign, x, y=y,
-                       spot=self.spot, domestic=self.curve)
+        return fx_rate(self._foreign, x, y=y,
+                       spot=self._spot, domestic=self.curve)
 
 
-Fx = FX = _call_adapter('Fx', ForeignExchangeRate)
+class FxRate(ForeignExchangeRateAdapter):
+
+    def __call__(self, x, y=None):
+        return self.fx(x, y)
 
 
 # --- InterestRateAdapter ---
 
 
-class InterestRateAdapter:
+class InterestRateAdapter(ReprAdapter):
 
-    def __init__(self, curve, *, frequency=None, eps=None):
-        self.curve = curve
+    def __init__(self, curve, *, frequency=None, cash_frequency=None, eps=None,
+                 forward_curve=None):
+        self.curve = init(curve)
         self.frequency = frequency
+        self.cash_frequency = cash_frequency
         self.eps = eps
+        self.forward_curve = forward_curve
+
+    @property
+    def _frequency(self):
+        return self.frequency or \
+            getattr(self.curve, 'frequency', None) or \
+            getattr(self.curve, '_frequency', None)
+
+    @property
+    def _cash_frequency(self):
+        return self.cash_frequency or \
+            getattr(self.curve, 'cash_frequency', None) or \
+            getattr(self.curve, '_cash_frequency', None) or \
+            self.frequency
+
+    @property
+    def _eps(self):
+        return self.eps or \
+            getattr(self.curve, 'eps', None) or \
+            getattr(self.curve, '_eps', None)
+
+    @property
+    def _forward_curve(self):
+        return self.forward_curve or \
+            getattr(self.curve, 'forward_curve', None) or \
+            getattr(self.curve, '_forward_curve', None)
 
     def df(self, x, y=None):
-        return compounding_factor(self.zero, x, y, frequency=self.frequency)
+        return compounding_factor(self.zero, x, y, frequency=self._frequency)
 
     def zero(self, x, y=None):
-        return compounding_rate(self.df, x, y, frequency=self.frequency)
-
-    def cash(self, x, y=None):
-        return cash_rate(self.zero, x, y, frequency=self.frequency)
+        return compounding_rate(self.df, x, y, frequency=self._frequency)
 
     def short(self, x, y=None):
-        return short_rate(self.zero, x, y, eps=self.eps)
+        return short_rate(self.zero, x, y, eps=self._eps)
 
+    def cash(self, x, y=None):
+        return cash_rate(self.zero, x, y, frequency=self._cash_frequency)
 
-Zero = _call_adapter('Zero', InterestRateAdapter)
-Df = DF = _call_adapter('Df', InterestRateAdapter)
-Cash = _call_adapter('Cash', InterestRateAdapter)
-Short = _call_adapter('Short', InterestRateAdapter)
+    def annuity(self, x, y=None):
+        return swap_annuity(self.zero, x, y,
+                            frequency=self._frequency,
+                            cash_frequency=self._cash_frequency)
+
+    def par(self, x, y=None):
+        return swap_par_rate(self.zero, x, y,
+                             frequency=self._frequency,
+                             cash_frequency=self._cash_frequency,
+                             forward_curve=self._forward_curve)
 
 
 class ZeroRate(InterestRateAdapter):
+
+    def __call__(self, x, y=None):
+        return self.zero(x, y)
 
     def zero(self, x, y=None):
         if y is None:
@@ -115,6 +178,9 @@ class ZeroRate(InterestRateAdapter):
 
 class DiscountFactor(InterestRateAdapter):
 
+    def __call__(self, x, y=None):
+        return self.df(x, y)
+
     def df(self, x, y=None):
         if y is None:
             return self.curve(x)
@@ -122,6 +188,9 @@ class DiscountFactor(InterestRateAdapter):
 
 
 class ShortRate(InterestRateAdapter):
+
+    def __call__(self, x, y=None):
+        return self.short(x, y)
 
     def short(self, x, y=None):
         if y is None:
@@ -131,37 +200,19 @@ class ShortRate(InterestRateAdapter):
 
 class CashRate(InterestRateAdapter):
 
+    def __call__(self, x, y=None):
+        return self.cash(x, y)
+
     def cash(self, x, y=None):
         if y is None:
             return self.curve(x)
         return super().cash(x, y)
 
 
-# --- SwapAdapter ---
+class SwapParRate(InterestRateAdapter):
 
-
-class SwapAdapter(InterestRateAdapter):
-
-    def __init__(self, curve, *, frequency=None, eps=None, forward_curve=None):
-        super().__init__(curve, frequency=frequency, eps=eps)
-        self.forward_curve = forward_curve
-        self.frequency = frequency
-        self.eps = eps
-
-    def par(self, x, y=None):
-        return swap_par_rate(self.zero, x, y,
-                             frequency=self.frequency,
-                             forward_curve=self.forward_curve)
-
-    def annuity(self, x, y=None):
-        return swap_annuity(self.zero, x, y, frequency=self.frequency)
-
-
-Par = _call_adapter('Par', SwapAdapter)
-Annuity = _call_adapter('Annuity', SwapAdapter)
-
-
-class SwapParRate(SwapAdapter):
+    def __call__(self, x, y=None):
+        return self.par(x, y)
 
     def par(self, x, y=None):
         if y is None:
@@ -169,28 +220,32 @@ class SwapParRate(SwapAdapter):
         return super().par(x, y)
 
     def zero(self, x, y=None):
-        if y is None:
-            raise NotImplementedError()
-        return super().zero(x, y)
+        raise NotImplementedError()
 
 
 # --- CreditAdapter ---
 
 
-class CreditAdapter:
+class CreditAdapter(ReprAdapter):
 
     def __init__(self, curve, *, eps=None):
-        self.curve = curve
+        self.curve = init(curve)
         self.eps = eps
 
-    def intensity(self, x, y=None):
-        return compounding_rate(self.prob, x, y)
+    @property
+    def _eps(self):
+        return self.eps or \
+            getattr(self.curve, 'eps', None) or \
+            getattr(self.curve, '_eps', None)
 
     def prob(self, x, y=None):
         return compounding_factor(self.intensity, x, y)
 
+    def intensity(self, x, y=None):
+        return compounding_rate(self.prob, x, y)
+
     def hz(self, x, y=None):
-        return short_rate(self.intensity, x, y, eps=self.eps)
+        return short_rate(self.intensity, x, y, eps=self._eps)
 
     def marginal(self, x, y=None):
         return marginal_prob(self.intensity, x, y)
@@ -199,14 +254,10 @@ class CreditAdapter:
         return default_prob(self.intensity, x, y)
 
 
-Intensity = _call_adapter('Intensity', CreditAdapter)
-Prob = _call_adapter('Prob', CreditAdapter)
-Hz = HZ = _call_adapter('Hz', CreditAdapter)
-Marginal = _call_adapter('Marginal', CreditAdapter)
-Pd = PD = _call_adapter('Pd', CreditAdapter)
-
-
 class FlatIntensity(CreditAdapter):
+
+    def __call__(self, x, y=None):
+        return self.intensity(x, y)
 
     def intensity(self, x, y=None):
         if y is None:
@@ -216,6 +267,9 @@ class FlatIntensity(CreditAdapter):
 
 class SurvivalProbability(CreditAdapter):
 
+    def __call__(self, x, y=None):
+        return self.prob(x, y)
+
     def prob(self, x, y=None):
         if y is None:
             return self.curve(x)
@@ -223,6 +277,9 @@ class SurvivalProbability(CreditAdapter):
 
 
 class HazardRate(CreditAdapter):
+
+    def __call__(self, x, y=None):
+        return self.hz(x, y)
 
     def hz(self, x, y=None):
         if y is None:
@@ -232,6 +289,9 @@ class HazardRate(CreditAdapter):
 
 class MarginalSurvivalProbability(CreditAdapter):
 
+    def __call__(self, x, y=None):
+        return self.marginal(x, y)
+
     def marginal(self, x, y=None):
         if y is None:
             return self.curve(x)
@@ -239,6 +299,9 @@ class MarginalSurvivalProbability(CreditAdapter):
 
 
 class DefaultProbability(CreditAdapter):
+
+    def __call__(self, x, y=None):
+        return self.pd(x, y)
 
     def pd(self, x, y=None):
         if y is None:
@@ -252,7 +315,7 @@ class DefaultProbability(CreditAdapter):
 class VolatilityAdapter:
 
     def __init__(self, curve):
-        self.curve = curve
+        self.curve = init(curve)
 
     def vol(self, x, y=None):
         return instantaneous_vol(self.curve, x, y)
@@ -261,11 +324,10 @@ class VolatilityAdapter:
         return terminal_vol(self.curve, x, y)
 
 
-Vol = _call_adapter('Vol', VolatilityAdapter)
-Terminal = _call_adapter('Terminal', VolatilityAdapter)
-
-
 class InstantaneousVol(VolatilityAdapter):
+
+    def __call__(self, x, y=None):
+        return self.vol(x, y)
 
     def vol(self, x, y=None):
         if y is None:
@@ -274,6 +336,9 @@ class InstantaneousVol(VolatilityAdapter):
 
 
 class TerminalVol(VolatilityAdapter):
+
+    def __call__(self, x, y=None):
+        return self.terminal(x, y)
 
     def terminal(self, x, y=None):
         if y is None:

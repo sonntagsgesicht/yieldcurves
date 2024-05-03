@@ -79,7 +79,7 @@ def short_rate(zero_rate_curve, x, y=None, *, eps=EPS):
 
 
 @vectorize(['x', 'y'], zipped=True)
-def integrated_short_rate(short_rate_curve, x, y=None):
+def integrate_short_rate(short_rate_curve, x, y=None):
     """zero rate from short rate curve"""
     if y is None:
         x, y = 0.0, x
@@ -90,64 +90,69 @@ def integrated_short_rate(short_rate_curve, x, y=None):
 
 
 @vectorize(['x', 'y'], zipped=True)
-def cash_rate(zero_rate_curve, x, y=None, *, frequency=None):
+def cash_rate(zero_rate_curve, x, y=None, *,
+              frequency=None, cash_frequency=4):
     """cash rate from zero rate curve"""
     if y is None:
-        y = x + 1 / float(frequency)
+        y = x + 1 / float(cash_frequency)
     fx = _compounding_factor(zero_rate_curve(x), x, frequency)
     fy = _compounding_factor(zero_rate_curve(y), y, frequency)
     return simple_rate(fy / fx, y - x)
 
 
 @vectorize(['x', 'y'], zipped=True)
-def compounded_cash_rate(cash_rate_curve, x, y=None, *, frequency=None):
+def compound_cash_rate(cash_rate_curve, x, y=None, *,
+                       frequency=None, cash_frequency=4):
     """zero rate from cash rate curve"""
     if y is None:
         x, y = 0.0, x
     if x == y:
         return cash_rate_curve(x)
     if x > y:
-        return -compounded_cash_rate(cash_rate_curve, y, x, frequency=frequency)
+        return -compound_cash_rate(cash_rate_curve, y, x,
+                                   frequency=frequency,
+                                   cash_frequency=cash_frequency)
     if not frequency:
         return cash_rate_curve(x)
 
     # df from compound forward rates
     n = 0
-    tenor = 1 / frequency
+    tenor = 1 / cash_frequency
     while x + (n + 1) * tenor < y:
         n += 1
-    frequency = 0
-    f = prod(_compounding_factor(cash_rate_curve(x + i * tenor),
-                                tenor, frequency) for i in range(n))
+    frequency = 0  # simple compounding
+    f = prod(_compounding_factor(
+        cash_rate_curve(x + i * tenor), tenor, frequency) for i in range(n))
     e = x + n * tenor
     f *= _compounding_factor(cash_rate_curve(e), y - e, frequency)
     return _compounding_rate(f, y - x, frequency=frequency)
 
 
-@vectorize(['x', 'y'], zipped=True)
-def swap_annuity(zero_rate_curve, x, y=None, *, frequency=None):
+# @vectorize(['x', 'y'], zipped=True)
+def swap_annuity(zero_rate_curve, x, y=None, *,
+                 frequency=None, cash_frequency=4):
     """swap annuity from zero rate curve"""
-    frequency = frequency or 4
     if not isinstance(x, ITERABLE):
         if y is None:
             x, y = 0.0, x
         if x == y:
             return 1.
-        step = 1 / frequency
+        step = 1 / cash_frequency
         date_list = [x]
         while date_list[-1] + step < y:
             date_list.append(date_list[-1] + step)
         date_list.append(y)
         x = date_list
     se = tuple(zip(x[:-1], x[1:]))
-    res = sum(compounding_factor(
+    res = tuple(compounding_factor(
         zero_rate_curve, x[0], e, frequency=frequency) * (e - s)
               for s, e in se)
-    return res
+    return sum(res)
 
 
 @vectorize(['x', 'y'], zipped=True)
-def swap_par_rate(zero_rate_curve, x, y=None, *, frequency=None, forward_curve=None):
+def swap_par_rate(zero_rate_curve, x, y=None, *,
+                  frequency=None, cash_frequency=4, forward_curve=None):
     """swap par rate from zero rate curve"""
     if y is None:
         x, y = 0.0, x
@@ -155,9 +160,10 @@ def swap_par_rate(zero_rate_curve, x, y=None, *, frequency=None, forward_curve=N
         return 0.0
     if forward_curve:
         print('forward_curve not implemented')
-    annuity = swap_annuity(zero_rate_curve, [x, y], frequency=frequency)
-    df = swap_annuity(zero_rate_curve, x, y, frequency=frequency)
-    return (1. - annuity / (y - x)) / df
+    df = compounding_factor(zero_rate_curve, x, y, frequency=frequency)
+    annuity = swap_annuity(zero_rate_curve, x, y,
+                           frequency=frequency, cash_frequency=cash_frequency)
+    return (1. - df) / annuity
 
 
 @vectorize(['x', 'y'], zipped=True)

@@ -17,61 +17,6 @@ from math import exp, log
 from .tools.repr import representation
 
 
-class _base_interpolation(object):
-    """
-    Basic class to interpolate given data.
-    """
-
-    def __init__(self, x_list=(), y_list=()):
-        r""" interpolation class
-
-        :param x_list: points $x_1 \dots x_n$
-        :param y_list: values $y_1 \dots y_n$
-
-        """
-        self.x_list = list()
-        self.y_list = list()
-        self._update(x_list, y_list)
-
-    def __call__(self, x):
-        raise NotImplementedError
-
-    def __contains__(self, item):
-        return item in self.x_list
-
-    def _update(self, x_list=(), y_list=()):
-        """ _update interpolation data
-        :param list(float) x_list: x values
-        :param list(float) y_list: y values
-        """
-        if not y_list:
-            for x in x_list:
-                if x in self.x_list:
-                    i = self.x_list.index(float(x))
-                    self.x_list.pop(i)
-                    self.y_list.pop(i)
-        else:
-            x_list = list(map(float, x_list))
-            y_list = list(map(float, y_list))
-            data = [(x, y) for x, y in
-                    zip(self.x_list, self.y_list) if x not in x_list]
-            data.extend(list(zip(x_list, y_list)))
-            data = sorted(data)
-            self.x_list = [float(x) for (x, y) in data]
-            self.y_list = [float(y) for (x, y) in data]
-
-    @classmethod
-    def from_dict(cls, xy_dict):
-        r"""create an interpolation instance object from **dict**
-
-        :param xy_dict: dictionary with sorted keys serving as **x_list**
-            and values as **y_list**
-        :return: interpolation object
-        """
-
-        return cls(sorted(xy_dict), (xy_dict[k] for k in sorted(xy_dict)))
-
-
 class base_interpolation(UserDict):
     """
     Basic class to interpolate given data.

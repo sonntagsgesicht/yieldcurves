@@ -21,7 +21,7 @@ from matplotlib import use, pyplot as plt
 # matplotlib.use('MacOSX')
 
 
-def plot(x, *curve, legend=True, figsize=(10, 5), backend=None):
+def plot(x, *curve, legend=True, figsize=(10, 5), backend=None, show=True):
     if backend:
         use(backend)
     fig, ax = plt.subplots(figsize=figsize)
@@ -34,4 +34,6 @@ def plot(x, *curve, legend=True, figsize=(10, 5), backend=None):
     ax.set_ylabel(r'$x(t)$')
     if legend:
         ax.legend()
-    plt.show()
+    if show:
+        plt.show()
+    return ax

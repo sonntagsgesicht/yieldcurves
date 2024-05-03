@@ -38,9 +38,4 @@ from . import interpolation  # noqa E401 E402
 from . import parametric  # noqa E401 E402
 
 from .adapter import *  # noqa E401 E402
-
-from .legacy_yc import PriceCurve, YieldCurve, FxRateCurve, \
-    ZeroRateCurve, ShortRateCurve, CashRateCurve, \
-    DefaultProbabilityCurve, SurvivalProbabilityCurve, \
-    MarginalSurvivalProbabilityCurve, FlatIntensityCurve, \
-    HazardRateCurve  # noqa E401 E402
+from .operator import *  # noqa E401 E402

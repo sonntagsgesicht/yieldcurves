@@ -2,7 +2,7 @@ from scipy.integrate import quad as _integrate  # noqa F401
 from .ap3 import plot as ascii_plot  # noqa F401
 from .mpl import plot
 
-EPS = 1 / 250
+EPS = 1 / 365.25
 ITERABLE = list, tuple
 
 

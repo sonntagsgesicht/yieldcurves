@@ -15,21 +15,15 @@ class PriceOperator(PriceAdapter):
         return self.curve.price_yield(x, y)
 
 
-class Price(PriceAdapter):
+class Price(PriceOperator):
     """PriceAdapter -> Price"""
-
-    def __init__(self, curve: PriceAdapter):
-        super().__init__(curve)
 
     def __call__(self, x, y=None):
         return self.price(x, y)
 
 
-class PriceYield(PriceAdapter):
+class PriceYield(PriceOperator):
     """PriceAdapter -> PriceYield"""
-
-    def __init__(self, curve: PriceAdapter):
-        super().__init__(curve)
 
     def __call__(self, x, y=None):
         return self.price_yield(x, y)
@@ -38,14 +32,18 @@ class PriceYield(PriceAdapter):
 # --- FxRateOperators ---
 
 
-class Fx(ForeignExchangeRateAdapter):
+class ForeignExchangeRateOperator(ForeignExchangeRateAdapter):
+    """AssetPriceYield/InterestRateAdapter -> FxRate"""
+
+    def fx(self, x, y=None):
+        return self.curve.fx(x, y)
+
+
+class Fx(ForeignExchangeRateOperator):
     """AssetPriceYield/InterestRateAdapter -> FxRate"""
 
     def __call__(self, x, y=None):
         return self.fx(x, y)
-
-    def fx(self, x, y=None):
-        return self.curve.fx(x, y)
 
 
 # --- InterestRateOperators ---
@@ -67,18 +65,12 @@ class InterestRateOperator(InterestRateAdapter):
 class Zero(InterestRateOperator):
     """InterestRateAdapter -> ZeroRate"""
 
-    def __init__(self, curve: InterestRateAdapter):
-        super().__init__(curve)
-
     def __call__(self, x, y=None):
         return self.zero(x, y)
 
 
 class Df(InterestRateOperator):
     """InterestRateAdapter -> DiscountFactor"""
-
-    def __init__(self, curve: InterestRateAdapter):
-        super().__init__(curve)
 
     def __call__(self, x, y=None):
         return self.df(x, y)
@@ -87,18 +79,12 @@ class Df(InterestRateOperator):
 class Short(InterestRateOperator):
     """InterestRateAdapter -> ShortRate"""
 
-    def __init__(self, curve: InterestRateAdapter):
-        super().__init__(curve)
-
     def __call__(self, x, y=None):
         return self.short(x, y)
 
 
 class Cash(InterestRateOperator):
     """InterestRateAdapter -> CashRate"""
-
-    def __init__(self, curve: InterestRateAdapter, cash_frequency=None):
-        super().__init__(curve, cash_frequency=cash_frequency)
 
     def __call__(self, x, y=None):
         return self.cash(x, y)
@@ -107,20 +93,12 @@ class Cash(InterestRateOperator):
 class Par(InterestRateOperator):
     """InterestRateAdapter -> SwapParRate"""
 
-    def __init__(self, curve: InterestRateAdapter,
-                 cash_frequency=None, forward_curve=None):
-        super().__init__(curve, cash_frequency=cash_frequency,
-                         forward_curve=forward_curve)
-
     def __call__(self, x, y=None):
         return self.par(x, y)
 
 
 class Annuity(InterestRateOperator):
     """InterestRateAdapter -> SwapAnnuityRate"""
-
-    def __init__(self, curve: InterestRateAdapter, cash_frequency=None):
-        super().__init__(curve, cash_frequency=cash_frequency)
 
     def __call__(self, x, y=None):
         return self.annuity(x, y)
@@ -151,18 +129,12 @@ class CreditOperator(CreditAdapter):
 class Prob(CreditOperator):
     """CreditAdapter -> SurvivalProbability"""
 
-    def __init__(self, curve: CreditAdapter):
-        super().__init__(curve)
-
     def __call__(self, x, y=None):
         return self.prob(x, y)
 
 
 class Intensity(CreditAdapter):
     """CreditAdapter -> FlatIntensity"""
-
-    def __init__(self, curve: CreditAdapter):
-        super().__init__(curve)
 
     def __call__(self, x, y=None):
         return self.intensity(x, y)
@@ -171,9 +143,6 @@ class Intensity(CreditAdapter):
 class Hz(CreditAdapter):
     """CreditAdapter -> HazardRate"""
 
-    def __init__(self, curve: CreditAdapter):
-        super().__init__(curve)
-
     def __call__(self, x, y=None):
         return self.hz(x, y)
 
@@ -181,18 +150,12 @@ class Hz(CreditAdapter):
 class Marginal(CreditAdapter):
     """CreditAdapter -> MarginalSurvivalProbability"""
 
-    def __init__(self, curve: CreditAdapter):
-        super().__init__(curve)
-
     def __call__(self, x, y=None):
         return self.marginal(x, y)
 
 
 class Pd(CreditAdapter):
     """CreditAdapter -> DefaultProbability"""
-
-    def __init__(self, curve: CreditAdapter):
-        super().__init__(curve)
 
     def __call__(self, x, y=None):
         return self.pd(x, y)
@@ -214,9 +177,6 @@ class VolatilityOperator(VolatilityAdapter):
 class Vol(VolatilityOperator):
     """VolatilityAdapter -> InstantaneousVol"""
 
-    def __init__(self, curve: VolatilityAdapter):
-        super().__init__(curve)
-
     def __call__(self, x, y=None):
         return self.vol(x, y)
 
@@ -224,9 +184,5 @@ class Vol(VolatilityOperator):
 class Terminal(VolatilityOperator):
     """VolatilityAdapter -> TerminalVol"""
 
-    def __init__(self, curve: VolatilityAdapter):
-        super().__init__(curve)
-
     def __call__(self, x, y=None):
         return self.terminal(x, y)
-

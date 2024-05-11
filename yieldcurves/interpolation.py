@@ -13,8 +13,22 @@
 from bisect import bisect_left, bisect_right
 from collections import UserDict
 from math import exp, log
+from reprlib import Repr
 
-from .tools.repr import representation
+_repr = Repr()
+_repr.maxlist = _repr.maxtuple = 1
+_repr.maxset = _repr.maxfrozenset = 1
+_repr.maxdict = 1
+_repr.maxsting = _repr.maxother = 40
+
+
+class plist(list):
+
+    def __str__(self):
+        return _repr.repr(list(self))
+
+
+from .tools.pp import prepr
 
 
 class base_interpolation(UserDict):
@@ -23,12 +37,16 @@ class base_interpolation(UserDict):
     """
 
     @property
+    def params(self):
+        return {'x_list': self.x_list, 'y_list': self.y_list}
+
+    @property
     def x_list(self):
-        return list(self.keys())
+        return plist(self.keys())
 
     @property
     def y_list(self):
-        return list(self.values())
+        return plist(self.values())
 
     def __init__(self, x_list=(), y_list=()):
         r""" interpolation class
@@ -51,10 +69,10 @@ class base_interpolation(UserDict):
         self.data = dict(sorted(self.data.items()))
 
     def __str__(self):
-        return representation(self, self.x_list, self.y_list, rstyle=False)
+        return prepr(self, self.x_list, self.y_list)
 
     def __repr__(self):
-        return representation(self, self.x_list, self.y_list)
+        return prepr(self, self.x_list, self.y_list)
 
     def _op(self, other, attr):
         new = self.__copy__()
@@ -107,7 +125,8 @@ class identity(base_interpolation):
     pass
 
 
-class default_value_interpolation(base_interpolation):
+class _default_value_interpolation(base_interpolation):
+
     def __init__(self, x_list=(), y_list=(), default_value=None):
         r""" default float interpolation
 
@@ -140,16 +159,8 @@ class default_value_interpolation(base_interpolation):
             return self._default
         return self.y_list[self.x_list.index(x)]
 
-    def __str__(self):
-        return representation(self, self.x_list, self.y_list,
-                              default_value=self._default, rstyle=False)
 
-    def __repr__(self):
-        return representation(self, self.x_list, self.y_list,
-                              default_value=self._default)
-
-
-class no(default_value_interpolation):
+class no(_default_value_interpolation):
     def __init__(self, x_list=(), y_list=()):
         r""" no interpolation at all
 
@@ -174,7 +185,7 @@ class no(default_value_interpolation):
         super().__init__(x_list, y_list)
 
 
-class zero(default_value_interpolation):
+class zero(_default_value_interpolation):
     def __init__(self, x_list=(), y_list=()):
         r""" interpolation by filling with zeros between points
 
@@ -560,11 +571,10 @@ class base_extrapolation:
         return y
 
     def __str__(self):
-        return representation(self, self.mid, left=self.left, right=self.right,
-                              rstyle=False)
+        return prepr(self, mid, left=left, right=right)
 
     def __repr__(self):
-        return representation(self, self.mid, left=self.left, right=self.right)
+        return prepr(self, repr(mid), left=repr(left), right=repr(right))
 
 
 class extrapolation(base_extrapolation):
@@ -582,88 +592,3 @@ class waterfall_extrapolation(base_extrapolation):
         if len(higher):
             left = waterfall_extrapolation(*higher, left=left)
         super(waterfall_extrapolation, self).__init__(mid, left, right)
-
-
-class interpolation_scheme(object):
-    _interpolation = constant, linear, constant
-
-    def __init__(self, domain, data, interpolation=None):
-        r"""class to build piecewise interpolation function
-
-        :param list(float) domain: points $x_1 \dots x_n$
-        :param list(float) data: values $y_1 \dots y_n$
-        :param function interpolation:
-            interpolation function on **x_list** (optional)
-            or triple of (**left**, **mid**, **right**)
-            interpolation functions with
-
-            * **left** for $x < x_1$ (as default **right** is used)
-            * **mid** for $x_1 \leq x \leq x_n$ (as default |linear| is used)
-            * **right** for $x > x_n$ (as default |constant| is used)
-
-        Curve object to build function
-        $$f(x) = y$$
-        using piecewise various interpolation functions.
-        """
-
-        if not interpolation:
-            interpolation = self.__class__._interpolation
-
-        y_left, y_mid, y_right = self.__class__._interpolation
-        if isinstance(interpolation, (tuple, list)):
-            if len(interpolation) == 3:
-                y_left, y_mid, y_right = interpolation
-            elif len(interpolation) == 2:
-                y_mid, y_right = interpolation
-                y_left = y_right
-            elif len(interpolation) == 1:
-                y_mid, = interpolation
-            else:
-                raise ValueError
-        elif issubclass(interpolation, base_interpolation):
-            y_mid = interpolation
-        else:
-            raise AttributeError
-
-        if not len(domain) == len(data):
-            raise AssertionError()
-        if not len(domain) == len(set(domain)):
-            raise AssertionError()
-
-        #: Interpolation:
-        self._y_mid = y_mid(domain, data)
-        self._y_right = y_right(domain, data)
-        self._y_left = y_left(domain, data)
-
-    def __call__(self, x):
-        y = 0.0
-        if x < self._y_left.x_list[0]:
-            # extrapolate to left
-            y = self._y_left(x)
-        elif x > self._y_right.x_list[-1]:
-            # extrapolate to right
-            y = self._y_right(x)
-        else:
-            # interpolate in the middle
-            y = self._y_mid(x)
-        return y
-
-
-def _dyn_scheme(left, mid, right):
-    name = left.__name__ + '_' + mid.__name__ + '_' + right.__name__
-    return type(name, (interpolation_scheme,),
-                {'_interpolation': (left, mid, right)})
-
-
-constant_linear_constant = _dyn_scheme(constant, linear, constant)
-linear_scheme = constant_linear_constant
-
-logconstant_loglinear_logconstant = _dyn_scheme(constant, loglinear, constant)
-log_linear_scheme = logconstant_loglinear_logconstant
-
-logconstantrate_loglinearrate_logconstantrate = _dyn_scheme(
-    logconstantrate, loglinearrate, logconstantrate)
-log_linear_rate_scheme = logconstantrate_loglinearrate_logconstantrate
-
-zero_linear_constant = _dyn_scheme(zero, linear, constant)
-zero_linear_scheme = zero_linear_constant

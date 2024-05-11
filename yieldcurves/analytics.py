@@ -20,33 +20,34 @@ from .compounding import compounding_factor as _compounding_factor, \
 from .tools import integrate, EPS, ITERABLE
 
 
-@vectorize(['x', 'y'], zipped=True)
+# @vectorize(['x', 'y'], zipped=True)
 def price_yield(price_curve, x, y=None):
     """return rate / yield from price curve"""
     return compounding_rate(price_curve, x, y)
 
 
-@vectorize(['x', 'y'], zipped=True)
+# @vectorize(['x', 'y'], zipped=True)
 def price(yield_curve, x, y=None, *, spot=1.0):
     """price from return rate curve / yield curve"""
     if y is None:
         x, y = 0.0, x
-    if not callable(spot):
-        spot = lambda _: spot
-    return spot(x) * compounding_factor(yield_curve, x, y)
+    if callable(spot):
+        spot = spot(x)
+    return spot / compounding_factor(yield_curve, x, y)
 
 
-@vectorize(['x', 'y'], zipped=True)
+# @vectorize(['x', 'y'], zipped=True)
 def fx_rate(zero_rate_curve, x, y=None, *, spot=1.0, domestic=0.0):
     """fx rate from foreign curve, spot fx rate curve and domestic curve"""
     if y is None:
         x, y = 0.0, x
     if not callable(domestic):
-        domestic = lambda _: domestic
+        d = float(domestic)
+        domestic = lambda _: d
     return price(zero_rate_curve, x, y, spot=spot) / price(domestic, x, y)
 
 
-@vectorize(['x', 'y'], zipped=True)
+# @vectorize(['x', 'y'], zipped=True)
 def compounding_factor(yield_curve, x, y=None, *, frequency=None):
     """discount factor from zero rate curve / yield curve"""
     if x == y:
@@ -58,7 +59,7 @@ def compounding_factor(yield_curve, x, y=None, *, frequency=None):
     return fy / fx
 
 
-@vectorize(['x', 'y'], zipped=True)
+# @vectorize(['x', 'y'], zipped=True)
 def compounding_rate(discount_factor_curve, x, y=None, *, frequency=None):
     """zero rate / yield from discount factor curve"""
     if y is None:
@@ -68,17 +69,30 @@ def compounding_rate(discount_factor_curve, x, y=None, *, frequency=None):
     return _compounding_rate(fy / fx, y - x, frequency)
 
 
-@vectorize(['x', 'y'], zipped=True)
+# @vectorize(['x', 'y'], zipped=True)
+def forward_rate(yield_curve, x, y=None, *, frequency=None, eps=EPS):
+    """forward zero rate from zero rate curve"""
+    if y is None:
+        y = x + 1 / float(frequency) if frequency else x + eps
+    fx = _compounding_factor(yield_curve(x), x, frequency)
+    fy = _compounding_factor(yield_curve(y), y, frequency)
+    return _compounding_rate(fy / fx, y - x, frequency)
+
+
+# @vectorize(['x', 'y'], zipped=True)
 def short_rate(zero_rate_curve, x, y=None, *, eps=EPS):
     """short rate from zero rate curve"""
-    if x == y or y is None:
-        y = x + eps
-    fx = continuous_compounding(zero_rate_curve(x), x)
-    fy = continuous_compounding(zero_rate_curve(y), y)
-    return continuous_rate(fy / fx, y - x)
+    if y is None:
+        try:
+            domain = iter(zero_rate_curve)
+            y = min((d for d in domain if x < d), default=x + eps)
+            x = max((d for d in domain if d <= x), default=x)
+        except TypeError as e:
+            x, y = x, x + eps
+    return forward_rate(zero_rate_curve, x, y)
 
 
-@vectorize(['x', 'y'], zipped=True)
+# @vectorize(['x', 'y'], zipped=True)
 def integrate_short_rate(short_rate_curve, x, y=None):
     """zero rate from short rate curve"""
     if y is None:
@@ -89,7 +103,7 @@ def integrate_short_rate(short_rate_curve, x, y=None):
     return r
 
 
-@vectorize(['x', 'y'], zipped=True)
+# @vectorize(['x', 'y'], zipped=True)
 def cash_rate(zero_rate_curve, x, y=None, *,
               frequency=None, cash_frequency=4):
     """cash rate from zero rate curve"""
@@ -100,7 +114,7 @@ def cash_rate(zero_rate_curve, x, y=None, *,
     return simple_rate(fy / fx, y - x)
 
 
-@vectorize(['x', 'y'], zipped=True)
+# @vectorize(['x', 'y'], zipped=True)
 def compound_cash_rate(cash_rate_curve, x, y=None, *,
                        frequency=None, cash_frequency=4):
     """zero rate from cash rate curve"""
@@ -128,7 +142,7 @@ def compound_cash_rate(cash_rate_curve, x, y=None, *,
     return _compounding_rate(f, y - x, frequency=frequency)
 
 
-# @vectorize(['x', 'y'], zipped=True)
+# # @vectorize(['x', 'y'], zipped=True)
 def swap_annuity(zero_rate_curve, x, y=None, *,
                  frequency=None, cash_frequency=4):
     """swap annuity from zero rate curve"""
@@ -150,7 +164,7 @@ def swap_annuity(zero_rate_curve, x, y=None, *,
     return sum(res)
 
 
-@vectorize(['x', 'y'], zipped=True)
+# @vectorize(['x', 'y'], zipped=True)
 def swap_par_rate(zero_rate_curve, x, y=None, *,
                   frequency=None, cash_frequency=4, forward_curve=None):
     """swap par rate from zero rate curve"""
@@ -166,7 +180,7 @@ def swap_par_rate(zero_rate_curve, x, y=None, *,
     return (1. - df) / annuity
 
 
-@vectorize(['x', 'y'], zipped=True)
+# @vectorize(['x', 'y'], zipped=True)
 def default_prob(prob_curve, x, y=None):
     """default prob from prob curve and visa versa"""
     if y is None:
@@ -174,7 +188,7 @@ def default_prob(prob_curve, x, y=None):
     return 1. - prob_curve(y) / prob_curve(x)
 
 
-@vectorize(['x', 'y'], zipped=True)
+# @vectorize(['x', 'y'], zipped=True)
 def marginal_prob(prob_curve, x, y=None):
     """marginal prob from prob curve"""
     if y is None:
@@ -182,7 +196,7 @@ def marginal_prob(prob_curve, x, y=None):
     return prob_curve(y) / prob_curve(x)
 
 
-@vectorize(['x', 'y'], zipped=True)
+# @vectorize(['x', 'y'], zipped=True)
 def compounding_marginal_prob(marginal_prob_curve, x, y=None):
     """prob from marginal prob curve"""
     if y is None:
@@ -203,11 +217,11 @@ def compounding_marginal_prob(marginal_prob_curve, x, y=None):
     return f * _compounding_factor(r, y - e)
 
 
-@vectorize(['x', 'y'], zipped=True)
+# @vectorize(['x', 'y'], zipped=True)
 def instantaneous_vol(terminal_vol_curve, x, y=None):
     raise NotImplementedError()
 
 
-@vectorize(['x', 'y'], zipped=True)
+# @vectorize(['x', 'y'], zipped=True)
 def terminal_vol(vol_curve, x, y=None):
     raise NotImplementedError()

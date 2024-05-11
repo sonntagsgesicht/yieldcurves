@@ -7,7 +7,7 @@ import xml.etree.ElementTree as ET  # nosec B405
 import requests
 from vectorizeit import vectorize
 
-from .tools.repr import ReprAdapter
+from .tools.pp import prepr
 
 """
 _data = {
@@ -29,7 +29,8 @@ file = 'data.cvs'  # noqa F841
 
 @vectorize(keys='x')
 def nss_spot(x,
-             beta0=0.0, beta1=0.0, beta2=0.0, beta3=0.0, tau1=1.0, tau2=1.0):
+             beta0=0.0, beta1=0.0, beta2=0.0, beta3=0.0,
+             tau1=1.0, tau2=1.0):
     x = float(x) or 1e-8
     a = (1 - exp(-x / tau1)) / (x / tau1)
     b = a - exp(-x / tau1)
@@ -40,7 +41,8 @@ def nss_spot(x,
 
 @vectorize(keys='x')
 def nss_short(x,
-              beta0=0.0, beta1=0.0, beta2=0.0, beta3=0.0, tau1=1.0, tau2=1.0):
+              beta0=0.0, beta1=0.0, beta2=0.0, beta3=0.0,
+              tau1=1.0, tau2=1.0):
     x = float(x) or 1e-8
     a = exp(-x / tau1)
     b = a * x / tau1
@@ -72,22 +74,13 @@ def nss_download():
     return download
 
 
-class NelsonSiegelSvensson(ReprAdapter):
+class NelsonSiegelSvensson:
+
     _download = dict()
 
-    def __init__(self, beta0=0.0, beta1=0.0, beta2=0.0, beta3=0.0,
-                 tau1=1.0, tau2=1.0, date=None, short_rate=None):
-        self.beta0 = beta0
-        self.beta1 = beta1
-        self.beta2 = beta2
-        self.beta3 = beta3
-        self.tau1 = tau1
-        self.tau2 = tau2
-        self.short_rate = short_rate
-        self.date = date
-
-    def __call__(self, x):
-        params = {
+    @property
+    def params(self):
+        return {
             'beta0': self.beta0,
             'beta1': self.beta1,
             'beta2': self.beta2,
@@ -95,9 +88,22 @@ class NelsonSiegelSvensson(ReprAdapter):
             'tau1': self.tau1,
             'tau2': self.tau2
         }
-        if self.short_rate:
-            return nss_short(x, **params)
-        return nss_spot(x, **params)
+
+    def __init__(self,
+                 beta0=0.0, beta1=0.0, beta2=0.0, beta3=0.0,
+                 tau1=1.0, tau2=1.0):
+        self.beta0 = beta0
+        self.beta1 = beta1
+        self.beta2 = beta2
+        self.beta3 = beta3
+        self.tau1 = tau1
+        self.tau2 = tau2
+
+    def __call__(self, x):
+        return nss_spot(x, **self.params)
+
+    def __repr__(self):
+        return prepr(self, **self.params)
 
     @classmethod
     def download(cls, date=None):
@@ -109,8 +115,7 @@ class NelsonSiegelSvensson(ReprAdapter):
                 date = tuple(cls._download)[date]
             if isinstance(date, datetime):
                 date = date.strftime('%Y-%m-%d')
-            obj = cls(**cls._download[date], date=date)
-            obj.date = date
+            obj = cls(**cls._download[date])
             return obj
 
     @classmethod
@@ -119,3 +124,10 @@ class NelsonSiegelSvensson(ReprAdapter):
         if not cls._download:
             cls._download = dict(nss_download().items())
         return tuple(cls._download)
+
+
+class NelsonSiegelSvenssonShortRate(NelsonSiegelSvensson):
+
+    def __call__(self, x):
+        return nss_short(x, **self.params)
+

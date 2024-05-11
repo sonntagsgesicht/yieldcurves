@@ -9,7 +9,7 @@
 # Website:  https://github.com/sonntagsgesicht/yieldcurves
 # License:  Apache License 2.0 (see LICENSE file)
 
-
+from inspect import stack
 from unittest import TestCase
 
 from businessdate import BusinessDate, BusinessRange
@@ -19,61 +19,82 @@ import yieldcurves as yc
 
 class RateCurveUnitTests(TestCase):
     def setUp(self):
-        self.today = BusinessDate()
-        self.domain = tuple(BusinessRange(self.today, self.today + '1Y', '3M'))
-        self.len = len(self.domain)
-        self.periods = '1D', '2B', '8D', '2W', '14B', '1M', '1M1D', \
-                       '3M', '6M', '6M2W1D', '9M', '12M', '1Y', '2Y', '5Y', \
-                       '5Y3M', '10Y', '30Y', '70Y'
-        # self.periods = '1D', '2B', '8D', '2W', '14B', '1M', '1M1D',
-        rates = [0.02, 0.018, 0.015, 0.017]
-        rates = [0.02]
-        points = rates * len(self.domain)
-        self.points = points[:len(self.domain)]
+        today = BusinessDate()
+        domain = list(BusinessRange(today, today + '10Y', '3M'))
+        domain[-1] = today + '99y'
 
-    def _rate_curve_test(self, curve_a, curve_b, places=7):
+        periods = '1D', '2B', '8D', '2W', '14B', '1M', '1M1D', '3M', '6M', \
+            '6M2W1D', '9M', '12M', '1Y', '2Y', '5Y', '5Y3M', '10Y', '11Y3M', \
+            '15Y', '17Y1W', '20Y', '20Y1D', '25Y', '30Y', '33Y1M1W1D', '70Y'
+        rates = [0.02, 0.018, 0.016, 0.015, 0.017, 0.019]
 
-        # for a, b in zip(curve_a.domain, curve_b):
-        #     self.assertEqual(a, b)
+        #periods = '1D', '2B', '8D', '2W', '14B', '1M', '1M1D',
+        #rates = [0.02]
+        points = (rates * len(domain))[:len(domain)]
 
-        for d in self.domain:
-            for p in self.periods:
-                x = d + p
-                a = curve_a.get_discount_factor(x, x)
-                b = curve_b.get_discount_factor(x, x)
-                self.assertAlmostEqual(a, b, places=places, msg=str(x))
+        self.domain = [today.get_day_count(d) for d in domain]
+        self.periods = [today.get_day_count(d) for d in periods]
+        self.tenors = [1/12, 1/4, 1/2, 1.]
+        self.curve = yc.interpolation.linear(self.domain, points)
 
-                a = curve_a.get_discount_factor(x)
-                b = curve_b.get_discount_factor(x)
-                y = curve_b._pre(x)
-                if curve_b.curve.frequency:
-                    b = dcf.compounding.periodic_rate(
-                        b, y, curve_b.curve.frequency)
-                    b = dcf.compounding.continuous_compounding(b, y)
-                self.assertAlmostEqual(a, b, places=places, msg=str(x))
+    def zero_rate_curve_test(self, dcf_curve, yc_curve, x, y=None, places=7):
 
-                a = curve_a.get_zero_rate(x)
-                b = curve_b.get_zero_rate(x)
-                self.assertAlmostEqual(a, b, places=places, msg=str(x))
+        a = dcf_curve.get_discount_factor
+        b = yc_curve.df
+        m = f"\ndcf_curve.{a.__name__}({x}, {y})"
+        m += f"\nyc_curve.{b.__name__}({x}, {y})"
+        self.assertAlmostEqual(a(x, y), b(x, y), places=places, msg=m)
 
-                a = curve_a.get_short_rate(x)
-                b = curve_b.get_short_rate(x)
-                self.assertAlmostEqual(a, b, places=places, msg=str(x))
+        a = dcf_curve.get_zero_rate
+        b = yc_curve.zero
+        m = f"\ndcf_curve.{a.__name__}({x}, {y})"
+        m += f"\nyc_curve.{b.__name__}({x}, {y})"
+        self.assertAlmostEqual(a(x, y), b(x, y), places=places, msg=m)
 
-                a = curve_a.get_cash_rate(x)
-                f = curve_b.curve.frequency
-                curve_b.curve.cash.frequency = None
-                b = curve_b.get_cash_rate(x)
-                self.assertAlmostEqual(a, b, places=places, msg=str(x))
-                curve_b.curve.frequency = f
+    def short_rate_curve_test(self, dcf_curve, yc_curve, x, y=None, places=7):
+
+        x = y or x
+        a = dcf_curve.get_short_rate
+        b = yc_curve.short
+        m = f"\ndcf_curve.{a.__name__}({x})"
+        m += f"\nyc_curve.{b.__name__}({x})"
+        self.assertAlmostEqual(a(x), b(x), places=places, msg=m)
+
+    def cash_rate_curve_test(self, dcf_curve, yc_curve, x, y=None, places=7):
+
+        a = dcf_curve.get_cash_rate
+        b = yc_curve.cash
+        m = f"\nyc_curve.{b.__name__}({x}, {y})"
+        self.assertAlmostEqual(a(x, y), b(x, y), places=places, msg=m)
+
+        x = y or x
+        a = dcf_curve.get_cash_rate
+        b = yc_curve.cash
+        m = f"\nyc_curve.{b.__name__}({x})"
+        self.assertAlmostEqual(a(x), b(x), places=places, msg=m)
 
     def test_zero_rate_curve(self):
-        dcf_curve = dcf.ZeroRateCurve(
-            self.domain, self.points, origin=self.today, forward_tenor='3M')
-        yc_curve = yc.ZeroRateCurve(
-            self.domain, self.points, origin=self.today, forward_tenor='3M')
 
-        self._rate_curve_test(dcf_curve, yc_curve)
+        yc_curve = yc.ZeroRate(self.curve, cash_frequency=None)
+        dcf_curve = dcf.ZeroRateCurve(self.curve.x_list, self.curve.y_list,
+                                      forward_tenor=.25)
+        dcf_curve._TIME_SHIFT = yc_curve.eps = eps = 1 /365
+
+        print(f"{yc_curve.curve=}")
+        print(f"{dcf_curve=}")
+        print(f"{yc_curve=}")
+
+        for d in self.domain:
+            self.zero_rate_curve_test(dcf_curve, yc_curve, d or eps)
+            self.zero_rate_curve_test(dcf_curve, yc_curve, 0, d or eps)
+            for p in self.tenors:
+                if max(yc_curve.curve.x_list) < d + p:
+                    continue
+                self.zero_rate_curve_test(dcf_curve, yc_curve, d, d + p)
+            for p in self.periods:
+                if max(yc_curve.curve.x_list) < d + p:
+                    continue
+                self.zero_rate_curve_test(dcf_curve, yc_curve, d, d + p)
 
     def test_cash_rate_curve(self):
         dcf_curve = dcf.CashRateCurve(

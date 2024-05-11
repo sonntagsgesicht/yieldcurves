@@ -1,11 +1,11 @@
-
 from typing import Callable, Union
 
-from .tools.repr import ReprAdapter
-from .analytics import price, price_yield, compounding_rate, \
+from .analytics import price, price_yield, forward_rate, compounding_rate, \
     compounding_factor, cash_rate, short_rate, marginal_prob, default_prob, \
-    fx_rate, swap_annuity, swap_par_rate, instantaneous_vol, terminal_vol
+    fx_rate, swap_annuity, swap_par_rate, instantaneous_vol, terminal_vol, EPS
 
+from .tools.fit import fit
+from .tools.pp import prepr
 
 class Const:
 
@@ -29,11 +29,17 @@ def init(curve: Union[Callable, float]):
 # --- PriceAdapter ---
 
 
-class PriceAdapter(ReprAdapter):
+class PriceAdapter:
 
     def __init__(self, curve, *, spot=1.0):
         self.curve = init(curve)
         self.spot = spot
+
+    def __str__(self):
+        return prepr(self)
+
+    def __repr__(self):
+        return prepr(self)
 
     @property
     def _spot(self):
@@ -42,7 +48,7 @@ class PriceAdapter(ReprAdapter):
             getattr(self.curve, '_spot', None)
 
     def price(self, x, y=None):
-        return price(self.price_yield, x, spot=self._spot)
+        return price(self.price_yield, x, y, spot=self._spot)
 
     def price_yield(self, x, y=None):
         return price_yield(self.price, x, y)
@@ -65,18 +71,24 @@ class AssetPriceYield(PriceAdapter):
     def price_yield(self, x, y=None):
         if y is None:
             return self.curve(x)
-        return super().price_yield(x, y)
+        return forward_rate(self.curve, x, y)
 
 
 # --- ForeignExchangeRateAdapter ---
 
 
-class ForeignExchangeRateAdapter(ReprAdapter):
+class ForeignExchangeRateAdapter:
 
     def __init__(self, curve, *, spot=None, foreign=None):
         self.curve = init(curve)
         self.spot = spot
         self.foreign = foreign
+
+    def __str__(self):
+        return prepr(self)
+
+    def __repr__(self):
+        return prepr(self)
 
     @property
     def _spot(self):
@@ -106,15 +118,21 @@ class FxRate(ForeignExchangeRateAdapter):
 # --- InterestRateAdapter ---
 
 
-class InterestRateAdapter(ReprAdapter):
+class InterestRateAdapter:
 
-    def __init__(self, curve, *, frequency=None, cash_frequency=None, eps=None,
+    def __init__(self, curve, *, frequency=None, cash_frequency=4, eps=EPS,
                  forward_curve=None):
         self.curve = init(curve)
         self.frequency = frequency
         self.cash_frequency = cash_frequency
         self.eps = eps
         self.forward_curve = forward_curve
+
+    def __str__(self):
+        return prepr(self)
+
+    def __repr__(self):
+        return prepr(self)
 
     @property
     def _frequency(self):
@@ -173,8 +191,10 @@ class ZeroRate(InterestRateAdapter):
     def zero(self, x, y=None):
         if y is None:
             return self.curve(x)
-        return super().zero(x, y)
+        return forward_rate(self.curve, x, y, frequency=self.frequency)
 
+    def short(self, x, y=None):
+        return short_rate(self.curve, x, y)
 
 class DiscountFactor(InterestRateAdapter):
 
@@ -220,17 +240,31 @@ class SwapParRate(InterestRateAdapter):
         return super().par(x, y)
 
     def zero(self, x, y=None):
-        raise NotImplementedError()
+        inner = getattr(self, '_inner', None)
+        if inner:
+            return inner.zero(x, y)
+        x_list = 1, 2, 3, 5, 7, 10, 15, 20, 30
+        x_list = getattr(self.curve, 'x_list', x_list)
+        y_list = [self.curve(_) for _ in x_list]
+        inner = fit(ZeroRate, x_list, y_list, method='par')
+        setattr(self, '_inner', inner)
+        return inner.zero(x, y)
 
 
 # --- CreditAdapter ---
 
 
-class CreditAdapter(ReprAdapter):
+class CreditAdapter:
 
-    def __init__(self, curve, *, eps=None):
+    def __init__(self, curve, *, eps=EPS):
         self.curve = init(curve)
         self.eps = eps
+
+    def __str__(self):
+        return prepr(self)
+
+    def __repr__(self):
+        return prepr(self)
 
     @property
     def _eps(self):

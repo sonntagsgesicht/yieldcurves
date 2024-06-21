@@ -32,10 +32,8 @@ logging.getLogger(__name__).addHandler(logging.NullHandler())
 #  add sabr model
 #  add global calibration using 'lmfit.minimize' or 'scipy.optimize.leastsq'
 
-from . import analytics  # noqa E401 E402
 from . import compounding  # noqa E401 E402
 from . import interpolation  # noqa E401 E402
 from . import parametric  # noqa E401 E402
 
-from .adapter import *  # noqa E401 E402
-from .operator import *  # noqa E401 E402
+from .curves import *  # noqa E401 E402

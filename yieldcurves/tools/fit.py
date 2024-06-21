@@ -3,7 +3,7 @@ from .. import interpolation as _interpolation
 from ..interpolation import linear, base_interpolation
 
 
-def simple_bracketing(func, a, b, precision=1e-13):
+def simple_bracketing(func, a, b, precision=1e-13, mid=None, vprecision=None):
     """ find root by _simple_bracketing an interval
 
     :param callable func: function to find root
@@ -11,10 +11,10 @@ def simple_bracketing(func, a, b, precision=1e-13):
     :param float b: upper interval boundary
     :param float precision: max accepted error
     :rtype: tuple
-    :return: :code:`(a, m, b)` of last recursion step
-        with :code:`m = a + (b-a) *.5`
+    :return: :code:`a + (b-a) *.5` of last recursion step
 
     """
+    vprecision = vprecision or precision
     fa, fb = func(a), func(b)
     if fb < fa:
         f = (lambda x: -func(x))
@@ -24,22 +24,21 @@ def simple_bracketing(func, a, b, precision=1e-13):
 
     if not fa <= 0. <= fb:
         msg = "simple_bracketing function must be loc monotone " \
-              "between %0.4f and %0.4f \n" % (a, b)
-        msg += "and simple_bracketing 0. between  %0.4f and %0.4f." % (fa, fb)
+              f"between {a} and {b} " \
+              f"and simple_bracketing 0. between {fa} and {fb}."
         raise AssertionError(msg)
 
-    m = a + (b - a) * 0.5
-    if abs(b - a) < precision and abs(fb - fa) < precision:
-        return a, m, b
+    m = a + (b - a) * 0.5 if mid is None else mid(a, b)
+
+    if abs(fb - fa) < precision or abs(b - a) < vprecision:
+        return m
 
     a, b = (m, b) if f(m) < 0 else (a, m)
-    return simple_bracketing(f, a, b, precision)
+    return simple_bracketing(f, a, b, precision, vprecision=vprecision)
 
 
-
-
-def fit(cls, x_list, y_list=None, *, interpolation=linear,
-        method='__call__', a=None, b=None, precision=None, **kwargs):
+def fit(self, x_list, y_list=None, *, interpolation=linear,
+        method='__call__', a=None, b=None, precision=1e-13, **kwargs):
     """fit curve to meet given values at points in domain
 
     :param cls curve class
@@ -62,7 +61,7 @@ def fit(cls, x_list, y_list=None, *, interpolation=linear,
         >>> domain = 1, 2, 3, 5, 10, 15, 20, 30
         >>> rates =  .01, .013, .017, .015, .014, .012, .015, .015
 
-        >>> fit(ZeroRate, domain, rates)
+        >>> fit(ZeroRate(), domain, rates)
         ZeroRate(linear([1, ..., 30], [0.01, ..., 0.015]))
 
     """
@@ -75,7 +74,7 @@ def fit(cls, x_list, y_list=None, *, interpolation=linear,
             interpolation = getattr(locals(), interpolation)
         curve = interpolation(x_list, y_list, **kwargs)
 
-    self = cls(curve)
+    setattr(self, 'curve', curve)
     func = getattr(self, str(method), method)
     for p, v in zip(x_list, y_list):
         def err(_):

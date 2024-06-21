@@ -1,19 +1,17 @@
+from re import compile as _compile
 from scipy.integrate import quad as _integrate  # noqa F401
 from .ap3 import plot as ascii_plot  # noqa F401
-from .mpl import plot
+from .mpl import plot, lin
 
 EPS = 1 / 365.25
 ITERABLE = list, tuple
 
-
 # integrate = (lambda c, x, y: _integrate(c, float(x), float(y)))
 integrate = _integrate
 
+_p1 = _compile(r'(.)([A-Z][a-z]+)')
+_p2 = _compile(r'([a-z0-9])([A-Z])')
 
-def lin(start, stop, step):
-    if start + step < start < stop or stop < start < start + step:
-        raise ValueError()
-    r = [start]
-    while r[-1] + step < stop:
-        r.append(r[-1] + step)
-    return r
+
+def snake_case(name):
+    return _p2.sub(r'\1_\2', _p1.sub(r'\1_\2', name)).lower()

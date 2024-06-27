@@ -2,7 +2,7 @@
 from inspect import stack, signature
 
 
-def prepr(self, *args, clsmethod='', **kwargs):
+def prepr(self, *args, clsmethod='', sep=', ', **kwargs):
     # select repr function
     is_str = any(f.function == '__str__' for f in stack())
     r = str if is_str else repr
@@ -26,7 +26,29 @@ def prepr(self, *args, clsmethod='', **kwargs):
         args, kwargs = b.args, b.kwargs
 
     # build repr string
-    params = tuple(f"{a}" for a in args) +\
-             tuple(f"{k}={v}" for k, v in kwargs.items())
+    params = tuple(f"{a}" for a in args) + \
+        tuple(f"{k}={v}" for k, v in kwargs.items())
     clsmethod = '.' + clsmethod if clsmethod else ''
-    return f"{self.__class__.__qualname__}{clsmethod}({', '.join(params)})"
+    return f"{self.__class__.__qualname__}{clsmethod}({sep.join(params)})"
+
+
+class Pretty:
+
+    def __init__(self, clsmethod='', sep=', ', args=(), kwargs=()):
+        self.clsmethod = clsmethod
+        self.sep = sep
+        self.args = args
+        self.kwargs = kwargs
+
+    def __call__(self, obj, *args, clsmethod='', sep=', ', **kwargs):
+        return prepr(obj, *args, clsmethod=clsmethod, sep=sep, **kwargs)
+
+
+def pretty(cls):
+    setattr(cls, '__str__', prepr)
+    setattr(cls, '__repr__', prepr)
+    return cls
+
+
+def pp(clsmethod='', sep=', ', args=(), kwargs=()):
+    return Pretty(clsmethod, sep, args, kwargs)

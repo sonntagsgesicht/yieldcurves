@@ -1,5 +1,4 @@
 
-from .. import interpolation as _interpolation
 from ..interpolation import linear, base_interpolation
 
 
@@ -56,12 +55,12 @@ def fit(self, x_list, y_list=None, *, interpolation=linear,
     :param float precision: max accepted error (see `simple_bracketing`)
     :return: fitted curve object of type `cls`
 
-        >>> from yieldcurves.tools.stripping import fit
-        >>> from yieldcurves import ZeroRate
+        >>> from yieldcurves.tools.fit import fit
+        >>> from yieldcurves import YieldCurve
         >>> domain = 1, 2, 3, 5, 10, 15, 20, 30
         >>> rates =  .01, .013, .017, .015, .014, .012, .015, .015
 
-        >>> fit(ZeroRate(), domain, rates)
+        >>> fit(YieldCurve(), domain, rates)
         ZeroRate(linear([1, ..., 30], [0.01, ..., 0.015]))
 
     """

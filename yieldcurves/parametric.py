@@ -1,36 +1,25 @@
-
 from datetime import datetime
-import io
 from math import exp
-import xml.etree.ElementTree as ET  # nosec B405
 
 import requests
 from vectorizeit import vectorize
 
-from .tools.pp import prepr
+from .tools.pp import pretty
 
-"""
-_data = {
+"""_params = {
     'beta0': 1.0138959988,
     'beta1': 1.836312606,
     'beta2': 2.9874138836,
     'beta3': 4.8105550065,
     'tau1': 0.7389058665,
     'tau2': 12.0362372437,
-}
-
-# todo parse ecb parameter
-url = 'https://sdw-wsrest.ecb.europa.eu/' \
-      'service/data/YC/B.U2.EUR.4F.G_N_A+G_N_C.SV_C_YM.?' \
-      'lastNObservations=1&format=csvdata'  # noqa F841
-file = 'data.cvs'  # noqa F841
-"""
+}"""
 
 
 @vectorize(keys='x')
-def nss_spot(x,
-             beta0=0.0, beta1=0.0, beta2=0.0, beta3=0.0,
-             tau1=1.0, tau2=1.0):
+def spot_rate(x, *,
+              beta0=0.0, beta1=0.0, beta2=0.0, beta3=0.0,
+              tau1=1.0, tau2=1.0):
     x = float(x) or 1e-8
     a = (1 - exp(-x / tau1)) / (x / tau1)
     b = a - exp(-x / tau1)
@@ -40,9 +29,9 @@ def nss_spot(x,
 
 
 @vectorize(keys='x')
-def nss_short(x,
-              beta0=0.0, beta1=0.0, beta2=0.0, beta3=0.0,
-              tau1=1.0, tau2=1.0):
+def short_rate(x, *,
+               beta0=0.0, beta1=0.0, beta2=0.0, beta3=0.0,
+               tau1=1.0, tau2=1.0):
     x = float(x) or 1e-8
     a = exp(-x / tau1)
     b = a * x / tau1
@@ -51,45 +40,47 @@ def nss_short(x,
     return 0.01 * sum(b * c for b, c in zip(beta, (1, a, b, c)))
 
 
-def nss_download():
-    root = '{http://www.sdmx.org/' \
-           'resources/sdmxml/schemas/v2_1/data/generic}'
-    url = 'https://api.statistiken.bundesbank.de/rest/download/'
-    keys = 'beta0', 'beta1', 'beta2', 'beta3', 'tau1', 'tau2',
+def download_ecb(start='', end='', last=None, aaa_only=True):
+    root = "https://data-api.ecb.europa.eu/service/data/YC/"
+    aaa = "B.U2.EUR.4F.G_N_A.SV_C_YM"
+    all = "B.U2.EUR.4F.G_N_C.SV_C_YM"
+    url = root + (aaa if aaa_only else all)
 
-    download = {}
-    for x in keys:
-        ref = f'D.I.ZST.{x[0] + x[-1]}.' \
-              f'EUR.S1311.B.A604._Z.R.A.A._Z._Z.A'
-        xml_file = requests.get(url + 'BBSIS/' + ref)
-        tree = ET.parse(io.StringIO(xml_file.text))  # nosec B314
+    keys = 'BETA0', 'BETA1', 'BETA2', 'BETA3', 'TAU1', 'TAU2',
+    params = {"format": "csvdata"}
+    if start:
+        if isinstance(start, datetime):
+            start = start.strftime('%Y-%m-%d')
+        params["startPeriod"] = start
+    if end:
+        if isinstance(end, datetime):
+            end = end.strftime('%Y-%m-%d')
+        params["endPeriod"] = end
+    if last or len(params) == 1:
+        params["lastNObservations"] = last or 1
 
-        for ob in tree.getroot().iter(root + 'Obs'):
-            if ob.find(root + 'ObsValue') is not None:
-                dt = ob.find(root + 'ObsDimension').attrib['value']
-                obj = ob.find(root + 'ObsValue').attrib['value']
-                values = download.get(dt, dict())
-                values[x.lower()] = float(obj)
-                download[dt] = values
-    return download
+    pos = slice(7, 10)
+
+    res = {}
+    for key in keys:
+        response = requests.get(url + '.' + key, params=params, timeout=15)
+        if not response.status_code == 200:
+            response.raise_for_status()
+        for line in response.text.split('\n')[1:]:
+            if line:
+                key, date, value = line.split(',')[pos]
+                res[date] = res.get(date, {})
+                res[date][key.lower()] = float(value)
+    return res
 
 
+@pretty
 class NelsonSiegelSvensson:
+    __slots__ = 'beta0', 'beta1', 'beta2', 'beta3', 'tau1', 'tau2'
 
-    _download = dict()
+    _download = {}
 
-    @property
-    def params(self):
-        return {
-            'beta0': self.beta0,
-            'beta1': self.beta1,
-            'beta2': self.beta2,
-            'beta3': self.beta3,
-            'tau1': self.tau1,
-            'tau2': self.tau2
-        }
-
-    def __init__(self,
+    def __init__(self, *,
                  beta0=0.0, beta1=0.0, beta2=0.0, beta3=0.0,
                  tau1=1.0, tau2=1.0):
         self.beta0 = beta0
@@ -100,34 +91,30 @@ class NelsonSiegelSvensson:
         self.tau2 = tau2
 
     def __call__(self, x):
-        return nss_spot(x, **self.params)
-
-    def __repr__(self):
-        return prepr(self, **self.params)
+        params = {k: getattr(self, k) for k in self.__slots__}
+        return spot_rate(x, **params)
 
     @classmethod
     def download(cls, date=None):
         if not cls._download:
-            cls._download = dict(nss_download().items())
-
-        if date:
-            if isinstance(date, int):
-                date = tuple(cls._download)[date]
-            if isinstance(date, datetime):
-                date = date.strftime('%Y-%m-%d')
-            obj = cls(**cls._download[date])
-            return obj
+            cls._download = download_ecb()
+        if date is None:
+            *_, date = tuple(cls._download)
+        if isinstance(date, datetime):
+            date = date.strftime('%Y-%m-%d')
+        if date not in cls._download:
+            cls._download.update(download_ecb(start=date, end=date))
+            cls._download = dict(sorted(cls._download.items()))
+        return cls(**cls._download[date])
 
     @classmethod
     @property
-    def dates(cls):
-        if not cls._download:
-            cls._download = dict(nss_download().items())
+    def download_dates(cls):
         return tuple(cls._download)
 
 
 class NelsonSiegelSvenssonShortRate(NelsonSiegelSvensson):
 
     def __call__(self, x):
-        return nss_short(x, **self.params)
-
+        params = {k: getattr(self, k) for k in self.__slots__}
+        return short_rate(x, **params)

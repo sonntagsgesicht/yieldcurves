@@ -1,11 +1,16 @@
+from math import prod
+import warnings
+
+
 from .compounding import simple_rate, simple_compounding, periodic_rate, \
     periodic_compounding, continuous_compounding, continuous_rate
 
-from .tools import integrate, EPS, ITERABLE, snake_case
+from .tools import integrate, ITERABLE, snake_case
 from .tools.fit import fit
-from .tools.pp import prepr
+from .tools.pp import pretty
 
 
+EPS = 1e-8
 CASH_FREQUENCY = 4
 SWAP_FREQUENCY = 1
 
@@ -27,7 +32,7 @@ class _const:
 
 # --- YieldCurveAdapter ---
 
-
+@pretty
 class YieldCurveAdapter:
 
     eps = EPS
@@ -71,15 +76,21 @@ class YieldCurveAdapter:
         self.cash_frequency = cash_frequency  # default term of cash rate
         self.swap_frequency = swap_frequency  # default term of swap coupons
 
-    def __str__(self):
-        return prepr(self)
-
-    def __repr__(self):
-        return prepr(self)
-
     def __call__(self, x):
         """returns continuous compounding spot rate"""
         return self.curve(x)
+
+    def __getitem__(self, item):
+        return self.curve[item]
+
+    def __setitem__(self, key, value):
+        self.curve[key] = value
+
+    def __delitem__(self, key):
+        del self.curve[key]
+
+    def __iter__(self):
+        return iter(self.curve)
 
     def price(self, x, y=None):
         if y is None:
@@ -99,7 +110,7 @@ class YieldCurveAdapter:
             y = min((d for d in iter(self.curve) if x < d), default=x + e)
             x = max((d for d in iter(self.curve) if d <= x), default=x)
         except TypeError:
-            x, y = x, x + self.eps
+            x, y = x - self.eps/2, x + self.eps/2
         return self.spot(x, y)
 
     # --- interest rate methods ---
@@ -121,7 +132,8 @@ class YieldCurveAdapter:
     def cash(self, x, y=None):
         if y is None:
             frequency = self.cash_frequency or \
-                        getattr(self.curve, 'cash_frequency', CASH_FREQUENCY)
+                        getattr(self.curve, 'cash_frequency', None) or \
+                        CASH_FREQUENCY
             y = x + 1 / float(frequency)
         df = self.df(x, y)
         return simple_rate(df, y - x)
@@ -133,7 +145,7 @@ class YieldCurveAdapter:
             if x == y:
                 return 1.
             frequency = self.swap_frequency or \
-                        getattr(self.curve, 'swap_frequency', SWAP_FREQUENCY)
+                getattr(self.curve, 'swap_frequency', SWAP_FREQUENCY)
             step = 1 / float(frequency)
             x = [x]
             while x[-1] + step < y:
@@ -159,7 +171,7 @@ class YieldCurveAdapter:
         return self.spot(x, y)
 
     def hz(self, x):
-        return self.short(x, x)
+        return self.short(x)
 
     def pd(self, x, y=None):
         return 1 - self.prob(x, y)
@@ -193,7 +205,10 @@ class YieldCurve(YieldCurveAdapter):
         def __call__(self, x):
             if x == 0:
                 return self.curve(0)
-            return integrate(self.curve, 0, x)[0] / x
+            with warnings.catch_warnings():
+                warnings.simplefilter('ignore')
+                r = integrate(self.curve, 0, x)[0] / x
+            return r
 
         def short(self, x):
             return self.curve(x)
@@ -225,14 +240,12 @@ class YieldCurve(YieldCurveAdapter):
 
             tenor = 1 / (self.compounding_frequency or CASH_FREQUENCY)
             n = int(x / tenor)
-            f = prod(simple_compounding(self.curve(i * tenor), tenor) for i in range(n))
-            f *= simple_compounding(self.curve(e), x - n * tenor)
+            f = prod(simple_compounding(self.curve(i * tenor), tenor)
+                     for i in range(n))
+            f *= simple_compounding(self.curve(n), x - n * tenor)
             return continuous_rate(f, x)
 
     class from_swap_rates(CompoundingYieldCurveAdapter):
-        @staticmethod
-        def cmpattr(obj, attr, item):
-            return all(_a == _b for _a, _b in zip(a, b))
 
         def __call__(self, x):
             x_list = 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 15, 20, 25, 30
@@ -262,37 +275,43 @@ class YieldCurve(YieldCurveAdapter):
 
     class from_hazard_rates(YieldCurveAdapter):
         def __call__(self, x):
-            return integrate(self.curve, 0, x)[0]  # / x
+            with warnings.catch_warnings():
+                warnings.simplefilter('ignore')
+                r = integrate(self.curve, 0, x)[0] / x
+            return r
 
     class from_pd(YieldCurveAdapter):
         def __call__(self, x):
-            return 1 - continuous_rate(self.curve(x) / self.curve(0), x)
+            f = (1 - self.curve(x)) / (1 - self.curve(0))
+            return continuous_rate(f, x)
 
     class from_marginal_probs(YieldCurveAdapter):
         def __call__(self, x):
             n = int(x)
             r = sum(continuous_rate(self.curve(i), 1) for i in range(n))
-            r += continuous_rate(self.curve(n), 1) * (x -n)
-            return r
+            r += continuous_rate(self.curve(n), 1) * (x - n)
+            return r / x
 
     class from_marginal_pd(YieldCurveAdapter):
         def __call__(self, x):
             n = int(x)
             r = sum(continuous_rate(1 - self.curve(i), 1) for i in range(n))
-            r += continuous_rate(1 - self.curve(n), 1) * (x -n)
-            return r
+            r += continuous_rate(1 - self.curve(n), 1) * (x - n)
+            return r / x
 
 
 class YieldCurveOperator:
 
     def __init__(self, curve: YieldCurve):
-        self.curve = \
-            curve if isinstance(curve, YieldCurveAdapter) else YieldCurve(curve)
+        self.curve = curve
 
     def __call__(self, x, y=None):
         name = snake_case(self.__class__.__name__)
-        func = getattr(self.curve, name, self.curve)
-        return func(x, y)
+        if hasattr(self.curve, name):
+            return getattr(self.curve, name)(x, y)
+        msg = f"curve attribute of type {self.__class__.__name__!r} " \
+              f"object has no attribute {name!r} that can be called"
+        raise AttributeError(msg)
 
     def __str__(self):
         return f"{self.__class__.__qualname__}({self.curve!s})"
@@ -301,23 +320,25 @@ class YieldCurveOperator:
         return f"{self.__class__.__qualname__}({self.curve!r})"
 
 
-class Price(YieldCurveOperator): pass
-class Spot(YieldCurveOperator): pass
-class Short(YieldCurveOperator): pass
+class Price(YieldCurveOperator): pass  # noqa E701
+class Spot(YieldCurveOperator): pass  # noqa E701
+class Short(YieldCurveOperator): pass  # noqa E701
+
 
 # --- interest rate operators ---
 
-class Df(YieldCurveOperator): pass
-class Zero(YieldCurveOperator): pass
-class Cash(YieldCurveOperator): pass
-class Annuity(YieldCurveOperator): pass
-class Swap(YieldCurveOperator): pass
+class Df(YieldCurveOperator): pass  # noqa E701
+class Zero(YieldCurveOperator): pass  # noqa E701
+class Cash(YieldCurveOperator): pass  # noqa E701
+class Annuity(YieldCurveOperator): pass  # noqa E701
+class Swap(YieldCurveOperator): pass  # noqa E701
+
 
 # --- credit prob operators ---
 
-class Prob(YieldCurveOperator): pass
-class Intensity(YieldCurveOperator): pass
-class Hz(YieldCurveOperator): pass
-class Pd(YieldCurveOperator): pass
-class Marginal(YieldCurveOperator): pass
-class MarginalPd(YieldCurveOperator): pass
+class Prob(YieldCurveOperator): pass  # noqa E701
+class Intensity(YieldCurveOperator): pass  # noqa E701
+class Hz(YieldCurveOperator): pass  # noqa E701
+class Pd(YieldCurveOperator): pass  # noqa E701
+class Marginal(YieldCurveOperator): pass  # noqa E701
+class MarginalPd(YieldCurveOperator): pass  # noqa E701

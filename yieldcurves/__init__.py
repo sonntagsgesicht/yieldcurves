@@ -36,4 +36,4 @@ from . import compounding  # noqa E401 E402
 from . import interpolation  # noqa E401 E402
 from . import parametric  # noqa E401 E402
 
-from .curves import *  # noqa E401 E402
+from .yieldcurves import *  # noqa E401 E402

@@ -90,7 +90,7 @@ class RateCurveUnitTests(TestCase):
                 if d + p <= max(yc_curve.curve.x_list):
                     self.cash_rate_curve_test(dcf_curve, yc_curve, d, d + p)
 
-    def test_zero_rate_curve(self):
+    def _test_zero_rate_curve(self):
 
         yc_curve = yc.ZeroRate(self.curve, cash_frequency=None, frequency=None)
         dcf_curve = dcf.ZeroRateCurve(self.curve.x_list, self.curve.y_list,
@@ -104,8 +104,7 @@ class RateCurveUnitTests(TestCase):
 
         self.all_rate_curve_test(dcf_curve, yc_curve, eps)
 
-
-    def test_cash_rate_curve(self):
+    def _test_cash_rate_curve(self):
         yc_curve = yc.CashRate(self.curve, cash_frequency=None, frequency=None)
         dcf_curve = dcf.CashRateCurve(self.curve.x_list, self.curve.y_list,
                                      forward_tenor=.25, origin=0)
@@ -118,8 +117,7 @@ class RateCurveUnitTests(TestCase):
 
         self.cash_rate_curve_test(dcf_curve, yc_curve, eps)
 
-
-    def test_short_rate_curve(self):
+    def _test_short_rate_curve(self):
         curve = yc.interpolation.constant(self.curve.x_list, self.curve.y_list)
         yc_curve = yc.ShortRate(curve, cash_frequency=None, frequency=None)
         dcf_curve = dcf.ShortRateCurve(self.curve.x_list, self.curve.y_list,

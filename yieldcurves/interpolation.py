@@ -15,6 +15,9 @@ from collections import UserDict
 from math import exp, log
 from reprlib import Repr
 
+from .tools.pp import pretty
+
+
 _repr = Repr()
 _repr.maxlist = _repr.maxtuple = 1
 _repr.maxset = _repr.maxfrozenset = 1
@@ -28,17 +31,11 @@ class plist(list):
         return _repr.repr(list(self))
 
 
-from .tools.pp import prepr
-
-
+@pretty
 class base_interpolation(UserDict):
     """
     Basic class to interpolate given data.
     """
-
-    @property
-    def params(self):
-        return {'x_list': self.x_list, 'y_list': self.y_list}
 
     @property
     def x_list(self):
@@ -59,6 +56,11 @@ class base_interpolation(UserDict):
         if not len(set(x_list)) == len(x_list):
             raise KeyError(f"identical x values in {x_list}")
         # super().__init__(sorted(zip(x_list, y_list)))
+        if callable(y_list):
+            y_list = tuple(y_list(x) for x in x_list)
+        if isinstance(x_list, dict) and not y_list:
+            y_list = x_list.values()
+            x_list = x_list.keys()
         super().__init__(zip(map(float, x_list), map(float, y_list)))
 
     def __call__(self, x):
@@ -67,12 +69,6 @@ class base_interpolation(UserDict):
     def __setitem__(self, key, value):
         super().__setitem__(float(key), float(value))
         self.data = dict(sorted(self.data.items()))
-
-    def __str__(self):
-        return prepr(self, self.x_list, self.y_list)
-
-    def __repr__(self):
-        return prepr(self, self.x_list, self.y_list)
 
     def _op(self, other, attr):
         new = self.__copy__()
@@ -140,9 +136,9 @@ class _default_value_interpolation(base_interpolation):
         $$f(x)=y_i\text{ for } x=x_i$$
         and $d$ if no matching $x_i$ is found.
 
-        >>> from yieldcurves.interpolation import default_value_interpolation
-        >>> # c = default_value_interpolation([1,2,3,1], [1,2,3,4], default_value=42)
-        >>> c = default_value_interpolation([1,2,3], [1,2,3], default_value=42)
+        >>> from yieldcurves.interpolation import _default_value_interpolation
+        >>> # c = _default_value_interpolation([1,2,3,1], [1,2,3,4], default_value=42)
+        >>> c = _default_value_interpolation([1,2,3], [1,2,3], default_value=42)
         >>> c(1)
         1.0
         >>> c(2)
@@ -537,6 +533,7 @@ class logconstantrate(constant):
         return exp(-log_y * x)
 
 
+@pretty
 class base_extrapolation:
 
     def __init__(self, mid, left=None, right=None):
@@ -569,12 +566,6 @@ class base_extrapolation:
             y = y + self.right(_ for _ in x if max_x < x)
 
         return y
-
-    def __str__(self):
-        return prepr(self, mid, left=left, right=right)
-
-    def __repr__(self):
-        return prepr(self, repr(mid), left=repr(left), right=repr(right))
 
 
 class extrapolation(base_extrapolation):

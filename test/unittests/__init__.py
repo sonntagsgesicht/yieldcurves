@@ -15,7 +15,7 @@ sys.path.append('yieldcurves/')
 sys.path.append('.')
 sys.path.append('..')
 
-from .compounding_tests import *
-from .datecurve_test import *
-# from .dcfcurve_tests import *
-from .interpolation_tests import *
+# from .compounding_tests import *
+# from .interpolation_tests import *
+# from .datecurve_tests import *
+# from .yieldcurve_tests import *

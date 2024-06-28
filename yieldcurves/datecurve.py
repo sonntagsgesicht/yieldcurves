@@ -3,21 +3,22 @@ from datetime import timedelta, date
 from . import interpolation as _interpolation
 from .yieldcurves import YieldCurve
 from .tools.pp import pretty
-from .tools import ITERABLE
+from .tools import ITERABLE, inverse
+from .tools.fit import simple_bracketing
 
 
 @pretty
 class DateCurve:
 
+    BASEDATE = date.today()
     DAYS_IN_YEAR = 365.25
     INTERPOLATION = 'linear'
-    BASEDATE = date.today()
-    _cache = {}
 
     def __init__(self, curve, *, origin=None, yf=None):
         self.curve = curve
         self.origin = origin
         self.yf = yf
+        self._cache = {'__hash__': f"{self.origin} * {self.yf}"}
 
     @staticmethod
     def dyf(start, end):
@@ -71,29 +72,77 @@ class DateCurve:
             return None
         if isinstance(x, ITERABLE):
             return type(x)(self.year_fraction(_) for _ in x)
-        origin = \
-            self.__class__.basedate if self.origin is None else self.origin
+        origin = self.BASEDATE if self.origin is None else self.origin
         yf = self.yf or self.dyf
         return yf(origin, x)
 
     def inverse(self, value):
         if isinstance(value, ITERABLE):
             return type(value)(self.year_fraction(_) for _ in value)
+
+        if not f"{self.origin} * {self.yf}" == self._cache.get('__hash__', ''):
+            self._cache = {'__hash__': f"{self.origin} * {self.yf}"}
+
         if value not in self._cache:
-            d = self.BASEDATE if self.origin is None else self.origin
-            if isinstance(d, (int, float)):
-                tdelta = (lambda t: float(max(1, int(t/365))))
-            else:
-                tdelta = (lambda t: timedelta(days=t))
-            delta = tdelta(3650)
-            while value <= self.year_fraction(d):
-                d -= delta
-            for t in (3650, 365, 30, 1):
-                delta = tdelta(t)
-                while self.year_fraction(d + delta) < value:
-                    d += delta
-            self._cache[value] = d
+            self._cache[value] = self._inverse2(value)
         return self._cache[value]
+
+    def _inverse(self, value):
+        d = self.BASEDATE if self.origin is None else self.origin
+        if isinstance(d, (int, float)):
+            def err(x):
+                return self.year_fraction(d + x / self.DAYS_IN_YEAR) - value
+            a = b = 0
+            step = 365
+            while 0 < err(a):
+                a -= step
+            while err(b) < 0:
+                b += step
+            return d + \
+                simple_bracketing(err, a, b, 1 / 360) / self.DAYS_IN_YEAR
+        else:
+            def err(x):
+                return self.year_fraction(d + timedelta(x)) - value
+            a = b = 0
+            step = 365
+            while 0 < err(a):
+                a -= step
+            while err(b) < 0:
+                b += step
+            return d + timedelta(simple_bracketing(err, a, b, 1 / 350))
+
+    def _inverse1(self, value, step=4096):
+        d = self.BASEDATE if self.origin is None else self.origin
+        if isinstance(d, (int, float)):
+            def yf(x):
+                return self.year_fraction(d + x / self.DAYS_IN_YEAR)
+            return d + inverse(value, yf, step=step) / self.DAYS_IN_YEAR
+        else:
+            def yf(x):
+                return self.year_fraction(d + timedelta(x))
+            return d + timedelta(inverse(value, yf, step=step))
+
+    def _inverse2(self, value):
+        d = self.BASEDATE if self.origin is None else self.origin
+        if isinstance(d, (int, float)):
+            tdelta = (lambda t: float(max(1, int(t/365))))
+        else:
+            tdelta = (lambda t: timedelta(days=t))
+
+        delta = tdelta(3650)
+        while value <= self.year_fraction(d):
+            d -= delta
+
+        times = 1461, 365, 90, 30, 7
+        for t in times:
+            delta = tdelta(t)
+            while self.year_fraction(d + delta) < value:
+                d += delta
+
+        delta = tdelta(1)
+        while self.year_fraction(d + delta) <= value:
+            d += delta
+        return d
 
     def __call__(self, *args, **kwargs):
         # args = tuple(map(self._yf, args))

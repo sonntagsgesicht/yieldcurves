@@ -15,6 +15,7 @@ class DownloadRegTests(RegressionTestCase):
         # self.assertRegressiveEqual(dl == dl2)
 
     def test_download_nss(self):
+        NSS._download = {}
         self.assertRegressiveEqual(0 == len(NSS._download))
         NSS.download()
         self.assertRegressiveEqual(10 == len(NSS._download))

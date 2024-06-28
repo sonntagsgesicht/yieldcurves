@@ -1,4 +1,4 @@
-from regtest import RegressionTestCase
+from unittest import TestCase
 
 from yieldcurves.tools import lin, AlgebraCurve
 from yieldcurves.parametric import NelsonSiegelSvensson
@@ -6,7 +6,7 @@ from yieldcurves.interpolation import linear
 from yieldcurves.yieldcurves import YieldCurve
 
 
-class ParametricRegTests(RegressionTestCase):
+class YieldCurveTests(TestCase):
 
     def setUp(self):
         self.params = {

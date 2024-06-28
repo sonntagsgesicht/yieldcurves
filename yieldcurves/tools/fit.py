@@ -9,11 +9,12 @@ def simple_bracketing(func, a, b, precision=1e-13, mid=None, vprecision=None):
     :param float a: lower interval boundary
     :param float b: upper interval boundary
     :param float precision: max accepted error
-    :rtype: tuple
+    :rtype: float
     :return: :code:`a + (b-a) *.5` of last recursion step
 
     """
-    vprecision = vprecision or precision
+    vprecision = vprecision or 1e-14
+
     fa, fb = func(a), func(b)
     if fb < fa:
         f = (lambda x: -func(x))

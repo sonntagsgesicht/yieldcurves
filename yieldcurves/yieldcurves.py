@@ -1,14 +1,12 @@
 from math import prod
 import warnings
 
-
 from .compounding import simple_rate, simple_compounding, periodic_rate, \
     periodic_compounding, continuous_compounding, continuous_rate
 
 from .tools import integrate, ITERABLE, snake_case
 from .tools.fit import fit
 from .tools.pp import pretty
-
 
 EPS = 1e-8
 CASH_FREQUENCY = 4
@@ -35,8 +33,6 @@ class _const:
 @pretty
 class YieldCurveAdapter:
 
-    eps = EPS
-
     def __init__(self, curve, *, spot_price=None,
                  frequency=None, cash_frequency=None, swap_frequency=None):
         """
@@ -52,9 +48,6 @@ class YieldCurveAdapter:
             (optional, default: None)
         :param cash_frequency: cash rate compounding frequency
             (optional, default: 4)
-        :param eps: infinitisimal incremet
-            for numerical short rates calculation
-            (optional)
         :param forward_curve: forward cash rate curve
             for swap par rate calculation.
             If no **forward_curve** given, this curve it self will be used.
@@ -80,17 +73,13 @@ class YieldCurveAdapter:
         """returns continuous compounding spot rate"""
         return self.curve(x)
 
-    def __getitem__(self, item):
-        return self.curve[item]
+    def __getattr__(self, item):
+        if hasattr(self.curve, item):
+            return getattr(self.curve, item)
+        msg = f"{self.__class__.__name__!r} object has no attribute {item!r}"
+        raise AttributeError(msg)
 
-    def __setitem__(self, key, value):
-        self.curve[key] = value
-
-    def __delitem__(self, key):
-        del self.curve[key]
-
-    def __iter__(self):
-        return iter(self.curve)
+    # --- price yield methods ---
 
     def price(self, x, y=None):
         if y is None:
@@ -106,11 +95,10 @@ class YieldCurveAdapter:
 
     def short(self, x):
         try:
-            e = self.eps
-            y = min((d for d in iter(self.curve) if x < d), default=x + e)
-            x = max((d for d in iter(self.curve) if d <= x), default=x)
+            y = min((d for d in self if x < d), default=x + EPS)
+            x = max((d for d in self if d <= x), default=x)
         except TypeError:
-            x, y = x - self.eps/2, x + self.eps/2
+            x, y = x - EPS / 2, x + EPS / 2
         return self.spot(x, y)
 
     # --- interest rate methods ---
@@ -193,7 +181,6 @@ class CompoundingYieldCurveAdapter(YieldCurveAdapter):
 
 
 class YieldCurve(YieldCurveAdapter):
-
     class from_prices(YieldCurveAdapter):
         def __call__(self, x):
             return continuous_rate(self.curve(0) / self.curve(x), x)
@@ -321,24 +308,46 @@ class YieldCurveOperator:
 
 
 class Price(YieldCurveOperator): pass  # noqa E701
+
+
 class Spot(YieldCurveOperator): pass  # noqa E701
+
+
 class Short(YieldCurveOperator): pass  # noqa E701
 
 
 # --- interest rate operators ---
 
 class Df(YieldCurveOperator): pass  # noqa E701
+
+
 class Zero(YieldCurveOperator): pass  # noqa E701
+
+
 class Cash(YieldCurveOperator): pass  # noqa E701
+
+
 class Annuity(YieldCurveOperator): pass  # noqa E701
+
+
 class Swap(YieldCurveOperator): pass  # noqa E701
 
 
 # --- credit prob operators ---
 
 class Prob(YieldCurveOperator): pass  # noqa E701
+
+
 class Intensity(YieldCurveOperator): pass  # noqa E701
+
+
 class Hz(YieldCurveOperator): pass  # noqa E701
+
+
 class Pd(YieldCurveOperator): pass  # noqa E701
+
+
 class Marginal(YieldCurveOperator): pass  # noqa E701
+
+
 class MarginalPd(YieldCurveOperator): pass  # noqa E701

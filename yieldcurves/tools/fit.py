@@ -13,7 +13,6 @@ def simple_bracketing(func, a, b, precision=1e-13, mid=None, vprecision=None):
     :return: :code:`a + (b-a) *.5` of last recursion step
 
     """
-    vprecision = vprecision or 1e-14
 
     fa, fb = func(a), func(b)
     if fb < fa:
@@ -30,7 +29,14 @@ def simple_bracketing(func, a, b, precision=1e-13, mid=None, vprecision=None):
 
     m = a + (b - a) * 0.5 if mid is None else mid(a, b)
 
-    if abs(fb - fa) < precision or abs(b - a) < vprecision:
+    if abs(b - a) < (vprecision or 1e-14):
+        msg = "no solution found."\
+              "simple_bracketing function must be loc monotone " \
+              f"between {a} and {b} " \
+              f"and simple_bracketing 0. between {fa} and {fb}."
+        raise AssertionError(msg)
+
+    if abs(fb - fa) < precision:
         return m
 
     a, b = (m, b) if f(m) < 0 else (a, m)

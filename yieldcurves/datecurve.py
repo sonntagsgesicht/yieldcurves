@@ -8,17 +8,41 @@ from .tools.fit import simple_bracketing
 
 
 @pretty
-class DateCurve:
+class DateCurveAdapter:
 
     BASEDATE = date.today()
     DAYS_IN_YEAR = 365.25
     INTERPOLATION = 'linear'
+    _cache = {}
 
     def __init__(self, curve, *, origin=None, yf=None):
         self.curve = curve
+        if not isinstance(origin, float) and isinstance(self.BASEDATE, date):
+            origin = self._parse_date(origin)
         self.origin = origin
         self.yf = yf
-        self._cache = {'__hash__': f"{self.origin} * {self.yf}"}
+        self._cache[self._cache_key] = self._cache.get(self._cache_key, {})
+
+    def _parse_date(self, d):
+        if d is None:
+            return
+        t = type(self.BASEDATE)
+        if isinstance(d, t):
+            return d
+        if isinstance(d, date):
+            d = d.isoformat()
+        elif isinstance(d, int):
+            d = str(d)
+            d = f"{d[:4]}-{d[4:6]}-{d[6:8]}"
+        if isinstance(d, str):
+            return t.fromisoformat(d)
+        if not isinstance(d, (list, tuple)):
+            d = (d,)
+        return t(*d)
+
+    @property
+    def _cache_key(self):
+        return f"{self.origin} * {self.yf}"
 
     @staticmethod
     def dyf(start, end):
@@ -74,58 +98,71 @@ class DateCurve:
             return type(x)(self.year_fraction(_) for _ in x)
         origin = self.BASEDATE if self.origin is None else self.origin
         yf = self.yf or self.dyf
-        return yf(origin, x)
+        y = yf(origin, x)
+        self._cache[self._cache_key][y] = x
+        return y
 
-    def inverse(self, value):
-        if isinstance(value, ITERABLE):
-            return type(value)(self.year_fraction(_) for _ in value)
-
-        if not f"{self.origin} * {self.yf}" == self._cache.get('__hash__', ''):
-            self._cache = {'__hash__': f"{self.origin} * {self.yf}"}
-
-        if value not in self._cache:
-            self._cache[value] = self._inverse2(value)
-        return self._cache[value]
+    def inverse(self, y):
+        if isinstance(y, ITERABLE):
+            return type(y)(self.year_fraction(_) for _ in y)
+        if y not in self._cache[self._cache_key]:
+            self._cache[self._cache_key][y] = self._inverse1(y)
+        return self._cache[self._cache_key][y]
 
     def _inverse(self, value):
+        raise NotImplementedError("this can fail with 'RecursionError'. "
+                                  "please use _inverse2")
+        # fails with RecursionError for
+        # c = DateCurve(..., origin=date(2024, 6, 30), yf=get_30_360)
+        # c._inverse(1.6694)
         d = self.BASEDATE if self.origin is None else self.origin
         if isinstance(d, (int, float)):
             def err(x):
                 return self.year_fraction(d + x / self.DAYS_IN_YEAR) - value
+
             a = b = 0
             step = 365
             while 0 < err(a):
                 a -= step
             while err(b) < 0:
                 b += step
-            return d + \
-                simple_bracketing(err, a, b, 1 / 360) / self.DAYS_IN_YEAR
+            m = simple_bracketing(err, a, b, 1 / 360)
+            return d + m / self.DAYS_IN_YEAR
         else:
             def err(x):
                 return self.year_fraction(d + timedelta(x)) - value
+
             a = b = 0
             step = 365
-            while 0 < err(a):
+            while 0 <= err(a):
                 a -= step
             while err(b) < 0:
                 b += step
-            return d + timedelta(simple_bracketing(err, a, b, 1 / 350))
+            try:
+                m = simple_bracketing(err, a, b, 1 / 350)
+            except RecursionError as e:
+                print((value, self))
+                raise e
+            m = m if abs(err(m)) < abs(err(m + 1)) else m + 1
+            return d + timedelta(m)
 
     def _inverse1(self, value, step=4096):
         d = self.BASEDATE if self.origin is None else self.origin
         if isinstance(d, (int, float)):
             def yf(x):
                 return self.year_fraction(d + x / self.DAYS_IN_YEAR)
+
             return d + inverse(value, yf, step=step) / self.DAYS_IN_YEAR
         else:
             def yf(x):
                 return self.year_fraction(d + timedelta(x))
+
             return d + timedelta(inverse(value, yf, step=step))
 
     def _inverse2(self, value):
         d = self.BASEDATE if self.origin is None else self.origin
         if isinstance(d, (int, float)):
-            tdelta = (lambda t: float(max(1, int(t/365))))
+            tdelta = (lambda t: float(max(1, int(t / 365))))
         else:
             tdelta = (lambda t: timedelta(days=t))
 
@@ -144,12 +181,10 @@ class DateCurve:
             d += delta
         return d
 
-    def __call__(self, *args, **kwargs):
-        # args = tuple(map(self._yf, args))
-        # dict(map(lambda x, y: (x, self._yf(y), kwargs.items())))
-        args = tuple(self.year_fraction(x) for x in args)
-        kwargs = {k: self.year_fraction(y) for k, y in kwargs.items()}
-        return self.curve(*args, **kwargs)
+    def __call__(self, *_, **__):
+        _ = tuple(self.year_fraction(x) for x in _)
+        __ = {k: self.year_fraction(y) for k, y in __.items()}
+        return self.curve(*_, **__)
 
     def __getattr__(self, item):
         if hasattr(self.curve, item):
@@ -162,18 +197,6 @@ class DateCurve:
             return func
         msg = f"{self.__class__.__name__!r} object has no attribute {item!r}"
         raise AttributeError(msg)
-
-    def __getitem__(self, item):
-        return self.curve[self.year_fraction(item)]
-
-    def __setitem__(self, key, value):
-        self.curve[self.year_fraction(key)] = value
-
-    def __delitem__(self, key):
-        del self.curve[self.year_fraction(key)]
-
-    def __iter__(self):
-        return iter(map(self.inverse, self.curve))
 
     @classmethod
     def from_interpolation(cls, domain, curve, *, origin=None, yf=None,
@@ -191,3 +214,31 @@ class DateCurve:
         y_list = tuple(map(curve, x_list)) if callable(curve) else curve
         self.curve = curve_type(interpolation(x_list, y_list), **kwargs)
         return self
+
+
+class DateCurve(DateCurveAdapter):
+
+    @property
+    def _curve(self):
+        curve = self.curve
+        while hasattr(curve, 'curve'):
+            curve = curve.curve
+        return curve
+
+    def __getitem__(self, item):
+        return self._curve[self.year_fraction(item)]
+
+    def __setitem__(self, key, value):
+        self._curve[self.year_fraction(key)] = value
+
+    def __delitem__(self, key):
+        del self._curve[self.year_fraction(key)]
+
+    def __iter__(self):
+        return iter(map(self.inverse, self._curve))
+
+    def __len__(self, item):
+        return len(self._curve)
+
+    def __contains__(self, item):
+        return self.year_fraction(item) in self._curve

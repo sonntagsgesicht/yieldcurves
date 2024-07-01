@@ -2,6 +2,10 @@
 Python library *yieldcurves*
 ----------------------------
 
+.. image:: https://github.com/sonntagsgesicht/yieldcurves/actions/workflows/python-package.yml/badge.svg
+    :target: https://github.com/sonntagsgesicht/yieldcurves/actions/workflows/python-package.yml
+    :alt: GitHubWorkflow
+
 .. image:: https://img.shields.io/readthedocs/yieldcurves
    :target: http://yieldcurves.readthedocs.io
    :alt: Read the Docs

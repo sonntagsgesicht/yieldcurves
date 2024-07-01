@@ -1,3 +1,15 @@
+# -*- coding: utf-8 -*-
+
+# yieldcurves
+# -----------
+# A Python library for financial yield curves.
+#
+# Author:   sonntagsgesicht
+# Version:  0.1, copyright Saturday, 22 April 2023
+# Website:  https://github.com/sonntagsgesicht/yieldcurves
+# License:  Apache License 2.0 (see LICENSE file)
+
+
 from math import prod
 import warnings
 
@@ -178,16 +190,16 @@ class YieldCurve(_YieldCurveAdapter):
     :param spot_price: price at time 0
         (optional: default 1.0)
     :param compounding_frequency: compounding zero rate frequency
-        
+
         * None -> continuous compounding
         * 0 -> simple compounding
         * 12 -> monthly compounding
         * 4 -> quarterly compounding
         * 2 -> semi annually compounding
         * 1 -> annually compounding
-        
+
         (optional, default: None i.e. continuous compouding)
-    
+
     :param cash_frequency: cash rate compounding frequency
         (optional, default: 4 i.e. quarterly compounding)
     :param swap_frequency: swap coupon frequency

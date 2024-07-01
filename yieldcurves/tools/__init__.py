@@ -15,7 +15,7 @@ try:
     from scipy.integrate import quad as integrate  # noqa F401
 except ImportError as e:
     def integrate(*args, **kwargs):
-        raise e
+        raise ImportError("failed to import 'integrate' from 'scipy'")
 from .ap3 import plot as ascii_plot  # noqa F401
 from .mpl import plot, lin  # noqa F401
 from .algebra import AlgebraCurve  # noqa F401
@@ -23,7 +23,6 @@ from .algebra import AlgebraCurve  # noqa F401
 EPS = 1 / 365.25
 ITERABLE = list, tuple
 
-# integrate = (lambda c, x, y: _integrate(c, float(x), float(y)))
 
 _p1 = _compile(r'(.)([A-Z][a-z]+)')
 _p2 = _compile(r'([a-z0-9])([A-Z])')

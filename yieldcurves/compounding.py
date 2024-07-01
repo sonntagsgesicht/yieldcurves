@@ -153,9 +153,9 @@ def compounding_factor(rate_value, maturity_value, frequency=None):
     :param rate_value: interest rate $r$ per year
     :param maturity_value: maturity $\tau$ in years
     :param frequency: number of interest rate periods per year
-        as in |periodic_compounding|
-        if **frequency** is **None** |continuous_compounding| is used
-        and if **period_value** is **0** |simple_compounding| is used.
+        as in |periodic_compounding()|
+        if **frequency** is **None** |continuous_compounding()| is used
+        and if **period_value** is **0** |simple_compounding()| is used.
     :return:
     """
     if frequency is None or frequency < 0:
@@ -172,9 +172,9 @@ def compounding_rate(df, period_fraction, frequency):
     :param df: discount factor $df$
     :param period_fraction: interest rate period $\tau$ in years
     :param frequency: number of interest rate periods $m$ per year
-        as in |periodic_rate|
-        if **frequency** is **None** |continuous_rate| is used
-        and if **frequency** is **0** |simple_rate| is used.
+        as in |periodic_rate()|
+        if **frequency** is **None** |continuous_rate()| is used
+        and if **frequency** is **0** |simple_rate()| is used.
     """
     if frequency is None or frequency < 0:
         return continuous_rate(df, period_fraction)

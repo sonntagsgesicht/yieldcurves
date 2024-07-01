@@ -31,12 +31,14 @@ class YieldCurveTests(TestCase):
             self.assertAlmostEqual(a(x), b(x))
 
         a = AlgebraCurve(self.nss)
-        b = YieldCurve(a, frequency=4, cash_frequency=4, swap_frequency=2)
+        b = YieldCurve(
+            a, compounding_frequency=4, cash_frequency=4, swap_frequency=2)
         for x in lin(0.05, 20.05, 0.05):
             self.assertAlmostEqual(a(x), b(x))
 
         a = AlgebraCurve(0.02)
-        b = YieldCurve(a, frequency=4, cash_frequency=4, swap_frequency=2)
+        b = YieldCurve(
+            a, compounding_frequency=4, cash_frequency=4, swap_frequency=2)
         for x in lin(0.05, 20.05, 0.05):
             self.assertAlmostEqual(a(x), b(x))
 
@@ -51,31 +53,32 @@ class YieldCurveTests(TestCase):
     def test_yield_curve(self):
         f = YieldCurve(0.01)
         self._test_yield_curve(f)
-        f = YieldCurve(0.02, frequency=4, cash_frequency=4, swap_frequency=2)
+        f = YieldCurve(
+            0.02, compounding_frequency=4, cash_frequency=4, swap_frequency=2)
         self._test_yield_curve(f)
         f = YieldCurve(self.nss)
         self._test_yield_curve(f)
 
     def _test_interest_rate_curve(self, f, places=7):
         a = YieldCurve.from_df(f.df)
-        b = YieldCurve.from_zero_rates(f.zero,
-                                       compounding_frequency=f.frequency)
+        b = YieldCurve.from_zero_rates(
+            f.zero, frequency=f.compounding_frequency)
         y = a, b,
         for x in lin(0.05, 20.05, 0.05):
             for g in y:
                 self.assertAlmostEqual(f(x), g(x), places=places, msg=g)
 
     def _test_cash_rate_curve(self, f, places=7):
-        c = YieldCurve.from_cash_rates(f.cash,
-                                       compounding_frequency=f.cash_frequency)
+        c = YieldCurve.from_cash_rates(
+            f.cash, frequency=f.cash_frequency)
         y = c,
         for x in lin(0.25, 20.05, 0.25):
             for g in y:
                 self.assertAlmostEqual(f(x), g(x), places=places, msg=g)
 
     def _test_swap_rate_curve(self, f, places=7):
-        d = YieldCurve.from_swap_rates(f.swap,
-                                       compounding_frequency=f.swap_frequency)
+        d = YieldCurve.from_swap_rates(
+            f.swap, frequency=f.swap_frequency)
         y = d,
         for x in lin(1., 20.05, 1.):
             for g in y:
@@ -83,13 +86,13 @@ class YieldCurveTests(TestCase):
 
     def test_interest_rate_curve(self):
         f = YieldCurve(
-            0.02, frequency=4, cash_frequency=4, swap_frequency=2)
+            0.02, compounding_frequency=4, cash_frequency=4, swap_frequency=2)
         self._test_interest_rate_curve(f)
         self._test_cash_rate_curve(f)
         self._test_swap_rate_curve(f, places=5)
 
-        f = YieldCurve(
-            self.nss, frequency=4, cash_frequency=4, swap_frequency=2)
+        f = YieldCurve(self.nss, compounding_frequency=4, cash_frequency=4,
+            swap_frequency=2)
         self._test_interest_rate_curve(f)
         self._test_cash_rate_curve(f)
         self._test_swap_rate_curve(f, places=3)

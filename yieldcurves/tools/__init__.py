@@ -15,26 +15,5 @@ _p2 = _compile(r'([a-z0-9])([A-Z])')
 
 
 def snake_case(name):
+    """convert camel case to snake case"""
     return _p2.sub(r'\1_\2', _p1.sub(r'\1_\2', name)).lower()
-
-
-def inverse(y, func, step=1):
-    """inverse of `y` under a strict monotone `func(x: int) -> float`"""
-    x = 0
-    step = int(step) or 1
-    if func(x + step) < func(x):
-        return inverse(y, lambda x: -1 * func(x), step=step)
-    while y < func(x - step):
-        step *= 2
-    x -= step
-    if y == func(x):
-        return x
-    while 0 < step:
-        while func(x + step) < y:
-            x += step
-        step //= 2
-    if y == func(x):
-        return x
-    while func(x + 1) <= y:
-        x += 1
-    return x if y - func(x) < func(x + 1) - y else x + 1

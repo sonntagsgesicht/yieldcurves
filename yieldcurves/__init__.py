@@ -36,4 +36,20 @@ from . import compounding  # noqa E401 E402
 from . import interpolation  # noqa E401 E402
 from . import parametric  # noqa E401 E402
 
+from .datecurves import DateCurve  # noqa E401 E402
 from .yieldcurves import *  # noqa E401 E402
+from .tools.pp import pretty  # noqa E401 E402
+
+
+@pretty
+class eye:
+    r"""identity function $x \mapsto x$
+
+    :param x: float
+    :return: identity value **x**
+    """
+    def __init__(self, curve=None):
+        self.curve = curve
+
+    def __call__(self, x):
+        return x if self.curve is None else self.curve(x)

@@ -4,7 +4,7 @@ from datetime import date
 from businessdate import BusinessRange, BusinessDate
 from businessdate import daycount as dcc
 
-from yieldcurves.datecurve import DateCurve
+from yieldcurves.datecurves import DateCurve
 from yieldcurves.tools import lin, AlgebraCurve
 
 

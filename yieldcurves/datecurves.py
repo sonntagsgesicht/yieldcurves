@@ -57,7 +57,7 @@ class DateCurve:
         >>> byc(BusinessDate(20250101))
         1.0
 
-        """
+        """  # noqa E501
 
         self.curve = curve
         if not isinstance(origin, float) and isinstance(self.BASEDATE, date):

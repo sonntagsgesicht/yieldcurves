@@ -478,7 +478,7 @@ class YieldCurve(_YieldCurveAdapter):
         >>> yc.price(10)
         1.81939673403229
 
-        """
+        """  # noqa E501
         def __call__(self, x):
             if x == 0:
                 return self.curve(x)

@@ -13,7 +13,7 @@
 from re import compile as _compile
 try:
     from scipy.integrate import quad as integrate  # noqa F401
-except ImportError as e:
+except ImportError:
     def integrate(*args, **kwargs):
         raise ImportError("failed to import 'integrate' from 'scipy'")
 from .ap3 import plot as ascii_plot  # noqa F401

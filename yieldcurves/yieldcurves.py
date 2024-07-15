@@ -80,7 +80,7 @@ class _YieldCurveAdapter:
         df = self.price(x) / self.price(y)
         return continuous_rate(df, y - x)
 
-    def short(self, x):
+    def short(self, x, y=None):
         """short rate aka. instantaneous forward rate"""
         try:
             y = min((d for d in self if x < d), default=x + EPS)
@@ -154,7 +154,7 @@ class _YieldCurveAdapter:
         """Poisson process intensity"""
         return self.spot(x, y)
 
-    def hz(self, x):
+    def hz(self, x, y=None):
         """hazard rate"""
         return self.short(x)
 
@@ -162,11 +162,11 @@ class _YieldCurveAdapter:
         """probability of default"""
         return 1 - self.prob(x, y)
 
-    def marginal(self, x):
+    def marginal(self, x, y=None):
         """annual survival probability"""
         return self.prob(x, x + 1)
 
-    def marginal_pd(self, x):
+    def marginal_pd(self, x, y=None):
         """annual probability of default"""
         return 1 - self.prob(x, x + 1)
 
@@ -430,7 +430,7 @@ class YieldCurve(_YieldCurveAdapter):
                 r = integrate(self.curve, 0, x)[0] / x
             return r
 
-        def short(self, x):
+        def short(self, x, y=None):
             return self.curve(x)
 
     # --- interest rate methods ---
@@ -510,7 +510,7 @@ class YieldCurve(_YieldCurveAdapter):
             f *= simple_compounding(self.curve(n), x - n * tenor)
             return continuous_rate(f, x)
 
-        def cash(self, x):
+        def cash(self, x, y=None):
             return self.curve(x)
 
     class from_swap_rates(_CompoundingYieldCurveAdapter):
@@ -562,7 +562,7 @@ class YieldCurve(_YieldCurveAdapter):
                 r = integrate(self.curve, 0, x)[0] / x
             return r
 
-        def hz(self, x):
+        def hz(self, x, y=None):
             return self.curve(x)
 
     class from_pd(_YieldCurveAdapter):
@@ -584,7 +584,7 @@ class YieldCurve(_YieldCurveAdapter):
             r += continuous_rate(self.curve(n), 1) * (x - n)
             return r / x
 
-        def marginal(self, x):
+        def marginal(self, x, y=None):
             return self.curve(x)
 
     class from_marginal_pd(_YieldCurveAdapter):
@@ -595,7 +595,7 @@ class YieldCurve(_YieldCurveAdapter):
             r += continuous_rate(1 - self.curve(n), 1) * (x - n)
             return r / x
 
-        def marginal_pd(self, x):
+        def marginal_pd(self, x, y=None):
             return self.curve(x)
 
 

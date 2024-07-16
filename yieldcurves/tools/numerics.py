@@ -1,3 +1,15 @@
+# -*- coding: utf-8 -*-
+
+# yieldcurves
+# -----------
+# A Python library for financial yield curves.
+#
+# Author:   sonntagsgesicht
+# Version:  0.2, copyright Monday, 01 July 2024
+# Website:  https://github.com/sonntagsgesicht/yieldcurves
+# License:  Apache License 2.0 (see LICENSE file)
+
+
 def finite_difference(f, x, h=1e-7):
     """
     Numerically differentiate the function f at point x

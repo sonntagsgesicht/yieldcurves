@@ -11,13 +11,9 @@
 
 
 from re import compile as _compile
-try:
-    from scipy.integrate import quad as integrate  # noqa F401
-except ImportError:
-    def integrate(*args, **kwargs):
-        raise ImportError("failed to import 'integrate' from 'scipy'")
 from .mpl import plot, lin  # noqa F401
 from .algebra import AlgebraCurve  # noqa F401
+from .numerics import integrate  # noqa F401
 
 EPS = 1 / 365.25
 ITERABLE = list, tuple

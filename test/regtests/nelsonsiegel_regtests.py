@@ -1,10 +1,10 @@
 from regtest import RegressionTestCase
 
-from yieldcurves.parametric import spot_rate, short_rate, \
+from yieldcurves.models.nelsonsiegel import spot_rate, short_rate, \
     NelsonSiegelSvensson as NSS, NelsonSiegelSvenssonShortRate as NS3
 
 
-class ParametricRegTests(RegressionTestCase):
+class NelsonSiegelRegTests(RegressionTestCase):
 
     def setUp(self):
         self.params = [

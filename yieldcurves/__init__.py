@@ -29,7 +29,6 @@ logging.getLogger(__name__).addHandler(logging.NullHandler())
 
 from . import compounding  # noqa E401 E402
 from . import interpolation  # noqa E401 E402
-from . import parametric  # noqa E401 E402
 
 from .datecurves import DateCurve  # noqa E401 E402
 from .yieldcurves import *  # noqa E401 E402

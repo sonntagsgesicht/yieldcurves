@@ -19,26 +19,13 @@ from .compounding import simple_rate, simple_compounding, periodic_rate, \
 from .tools import integrate, ITERABLE, snake_case
 from .tools.fit import fit
 from .tools.pp import pretty
+from .tools.constant import init
+
 
 EPS = 1e-8
 CASH_FREQUENCY = 4
 SWAP_FREQUENCY = 1
 
-
-class _const:
-    """constant curve"""
-
-    def __init__(self, curve):
-        self.curve = curve
-
-    def __call__(self, x):
-        return self.curve
-
-    def __str__(self):
-        return str(self.curve)
-
-    def __repr__(self):
-        return repr(self.curve)
 
 
 # --- YieldCurveAdapter ---
@@ -48,7 +35,7 @@ class _YieldCurveAdapter:
 
     def __init__(self, curve, *, spot_price=None, compounding_frequency=None,
                  cash_frequency=None, swap_frequency=None):
-        self.curve = curve if callable(curve) else _const(curve)
+        self.curve = init(curve)
         self.spot_price = spot_price  # spot price at time 0
         self.compounding_frequency = compounding_frequency  # compounding frequency of spot rate  # noqa
         self.cash_frequency = cash_frequency  # default term of cash rate
@@ -70,7 +57,7 @@ class _YieldCurveAdapter:
         """price at x or price factor from x to y"""
         if y is None:
             spot_price = 1 if self.spot_price is None else self.spot_price
-            return spot_price / continuous_compounding(self(x), x)
+            return float(spot_price) / continuous_compounding(self(x), x)
         return self.price(y) / self.price(x)
 
     def spot(self, x, y=None):
@@ -427,7 +414,7 @@ class YieldCurve(_YieldCurveAdapter):
                 return self.curve(0)
             with warnings.catch_warnings():
                 warnings.simplefilter('ignore')
-                r = integrate(self.curve, 0, x)[0] / x
+                r = integrate(self.curve, 0, x) / x
             return r
 
         def short(self, x, y=None):
@@ -559,7 +546,7 @@ class YieldCurve(_YieldCurveAdapter):
         def __call__(self, x):
             with warnings.catch_warnings():
                 warnings.simplefilter('ignore')
-                r = integrate(self.curve, 0, x)[0] / x
+                r = integrate(self.curve, 0, x) / x
             return r
 
         def hz(self, x, y=None):
@@ -602,7 +589,7 @@ class YieldCurve(_YieldCurveAdapter):
 class YieldCurveOperator:
 
     def __init__(self, curve: YieldCurve):
-        """Operator turning |YieldCurve| into simple callable
+        r"""Operator turning |YieldCurve| into simple callable
 
         >>> from yieldcurves import YieldCurve
         >>> from yieldcurves.interpolation import linear

@@ -24,7 +24,7 @@ from ..tools.matrix import Matrix, Identity, cholesky
 @pretty
 class _HullWhiteModel:
     """Hull White model in terminal measure from sport rates"""
-    random = Random()
+    random = Random()   # nosec B311
 
     def __init__(self, mean_reversion=0., volatility=0., terminal_date=1., *,
                  domestic=None, fx_volatility=0.,
@@ -350,7 +350,7 @@ class _HullWhiteFx(_HullWhiteFactor):
 
 @pretty
 class _HullWhiteGlobal:
-    random = Random()
+    random = Random()  # nosec B311
 
     @staticmethod
     def foreign_correlation(rate_correlation=(), fx_correlation=(),

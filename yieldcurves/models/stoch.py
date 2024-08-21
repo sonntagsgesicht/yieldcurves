@@ -17,7 +17,7 @@ from scipy.linalg import cholesky
 
 
 class Gauss:
-    random = Random()
+    random = Random()  # nosec B311
 
     def __init__(self, covariance=None, term=1.0, increments=10, seed=None):
         self.covariance = covariance
@@ -58,7 +58,7 @@ class StochasticProcess:
             e.g. Wiener process :math:`W` or Markov chain :math:`M`
 
         """
-        self.driver = driver or Random()
+        self.driver = driver or Random()  # nosec B311
 
         self.step_size = step_size
         self.state = {0.0: 0.0}

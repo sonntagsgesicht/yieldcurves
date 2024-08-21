@@ -19,7 +19,7 @@ from ..yieldcurves import init
 
 
 class GBM(dict):
-    random = Random()
+    random = Random()  # nosec B311
 
     def __init__(self, curve, *, volatility=0.0):
         """

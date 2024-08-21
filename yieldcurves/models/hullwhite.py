@@ -557,7 +557,7 @@ class _HullWhiteGlobal:
         >>> d(.5), f(.5), d(1.5), f(1.5), float(x)
         (0.019999999999999893, 0.05000000000000011, 0.020000000000000014, 0.050000000000000024, 2.2)
 
-        """
+        """  # noqa E501
 
         self.factors = factors
         self.correlation = correlation

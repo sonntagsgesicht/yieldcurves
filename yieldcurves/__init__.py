@@ -5,7 +5,7 @@
 # A Python library for financial yield curves.
 #
 # Author:   sonntagsgesicht
-# Version:  0.2.1, copyright Tuesday, 16 July 2024
+# Version:  0.2.1, copyright Wednesday, 21 August 2024
 # Website:  https://github.com/sonntagsgesicht/yieldcurves
 # License:  Apache License 2.0 (see LICENSE file)
 
@@ -37,12 +37,12 @@ from .tools.pp import pretty  # noqa E401 E402
 
 @pretty
 class eye:
-    r"""identity function $x \mapsto x$
-
-    :param x: float
-    :return: identity value **x**
-    """
     def __init__(self, curve=None):
+        r"""identity function $x \mapsto x$
+
+        :param x: float
+        :return: identity value **x**
+        """
         self.curve = curve
 
     def __call__(self, x):

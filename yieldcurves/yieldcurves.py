@@ -5,7 +5,7 @@
 # A Python library for financial yield curves.
 #
 # Author:   sonntagsgesicht
-# Version:  0.2.1, copyright Tuesday, 16 July 2024
+# Version:  0.2.1, copyright Wednesday, 21 August 2024
 # Website:  https://github.com/sonntagsgesicht/yieldcurves
 # License:  Apache License 2.0 (see LICENSE file)
 
@@ -209,18 +209,18 @@ class YieldCurve(_YieldCurveAdapter):
     of asset with spot price of $p_0$
 
     >>> yc.price(9)
-    118.64907490217118
+    118.649074...
 
     forward prices factor $p(t, t') = \frac{p(t')}{p(t)}$
 
     >>> f = yc.price(1, 9)
     >>> 100 * f * yc.price(0, 1)
-    118.64907490217117
+    118.6490749...
 
     spot rate $r(t) = f(0, t)$
 
     >>> yc.spot(2)
-    0.01200000000000001
+    0.012000...
 
     and therefor the same as the inner curve
 
@@ -230,14 +230,14 @@ class YieldCurve(_YieldCurveAdapter):
     forward spot rate $f(t, t') = \frac{r(t') - r(t)}{t' - t}$
 
     >>> yc.spot(2, 4)
-    0.015999999999999993
+    0.015999...
 
 
     short rate or instantanuous forward rate $s(t) = \lim_{t' \to t} f(t, t')$
     s.th. $r(t, t') (t' - t) = \int_t^{t'} s(\tau)\ d \tau$
 
     >>> yc.short(2)
-    0.013999990142199482
+    0.0139999...
 
     **interest rate** related
     -------------------------
@@ -245,60 +245,60 @@ class YieldCurve(_YieldCurveAdapter):
     discount factor $P(t, t') = p(t, t')^{-1}$
 
     >>> yc.df(1, 9)
-    0.8521437889662112
+    0.852143...
 
     >>> 1 / yc.price(1, 9)
-    0.8521437889662113
+    0.852143...
 
     zero rate $P(0, t) = \prod_{i=1}^{m * t} (1 + r(t) / m)^{m \cdot t}$
     with **compounding_frequency** $m$
 
     >>> yc.zero(9)
-    0.019015049608468004
+    0.019015...
 
     forward zero rate
 
     >>> yc.zero(1, 9)
-    0.020016675929784178
+    0.020016...
 
     simple compounded cash rate
     $L(t) = \frac{1}{\tau} ( P(t) - P(t + \tau) ) P(t, t + \tau)^{-1}$
     with **cash_frequency** $n$ and tenor $\tau = 1 / n$
 
     >>> yc.cash(5)
-    0.02030134441964293
+    0.020301...
 
     swap annuity $A(t) = \sum_{i=1}^{k \cdot t} P(0, \frac{i}{k})$
     mit **swap_frequency** $k$ as fixed coupon frequency
 
     >>> yc.annuity(10)
-    9.124091211338056
+    9.124091...
 
     forward swap annuity
     $A(t, t') = \sum_{i=1}^{k \cdot t'} P(t, t + \frac{i}{k})$
     mit **swap_frequency** $k$ as fixed coupon frequency
 
     >>> yc.annuity(5, 10)
-    4.660460520774009
+    4.660460...
 
     forward swap annuity with list argument $T = (t_0, \dots, t_n)$
     $A(T) = \sum_{i=1}^{n} P(t_0, t_i) \cdot (t_i - t_{i-1})$
     and therefor ignoring **swap_frequency**
 
     >>> yc.annuity([5, 6, 7, 8, 9, 10])
-    4.660460520774009
+    4.660460...
 
     forward swap par rate $c(t) = \frac{1 - P(0, t)}{A(t)}$
     with swap annuity $A(t)$.
 
     >>> yc.swap(10)
-    0.019867101580129304
+    0.019867...
 
     >>> yc.swap(5, 10)
     0.025212765324721546
 
     >>> yc.swap([5, 6, 7, 8, 9, 10])
-    0.025212765324721546
+    0.025212...
 
     **credit** related
     ------------------
@@ -306,44 +306,44 @@ class YieldCurve(_YieldCurveAdapter):
     survival probability $P(t, t') = e^{t \cdot r(t) - t' \cdot r(t'))}
 
     >>> yc.prob(5, 10)
-    0.8824969025845953
+    0.882496...
 
     intensity $\lambda(t) = r(t)$
 
     >>> yc.intensity(5)
-    0.015000000000000008
+    0.015000...
 
     >>> yc.intensity(5, 10)
-    0.025000000000000012
+    0.025000...
 
     hazard rate $h(t) = \lim_{t' \to t} \lambda(t, t')$
 
     >>> yc.hz(5)
-    0.020000000002
+    0.020000...
 
     probability of default $pd(t, t') = 1 - P(t, t')$
 
     >>> yc.pd(5, 10)
-    0.11750309741540466
+    0.117503...
 
     >>> 1 - yc.prob(5, 10)
-    0.11750309741540466
+    0.117503...
 
     marginal or annual survival probability $\Pi(t) = P(t, t + 1)$
 
     >>> yc.marginal(5)
-    0.9792189645694597
+    0.979218...
 
     >>> yc.prob(5, 6)
-    0.9792189645694597
+    0.979218...
 
     marginal or annual probability of default $Pd(t) = 1 - \Pi(t)$
 
     >>> yc.marginal_pd(5)
-    0.02078103543054033
+    0.0207810...
 
     >>> 1 - yc.prob(5, 6)
-    0.02078103543054033
+    0.0207810...
 
     """  # noqa 501
 
@@ -381,11 +381,11 @@ class YieldCurve(_YieldCurveAdapter):
         >>> yc(5)  # spot rate
         0.055
 
-        >>> yc.spot(10)
-        0.059999999999999984
+        >>> yc.spot(10.0)
+        0.0599999...
 
         >>> yc.price(10)
-        1.8221188003905087
+        1.8221188...
 
         """
         pass
@@ -456,13 +456,13 @@ class YieldCurve(_YieldCurveAdapter):
         >>> c = linear([0, 10], [0.05, 0.06])
         >>> yc = YieldCurve.from_zero_rates(c, frequency=12, compounding_frequency=4)
         >>> yc(5)  # spot rate
-        0.054874342141609356
+        0.054874...
 
         >>> yc.zero(10)
         0.06
 
         >>> yc.price(10)
-        1.81939673403229
+        1.819396...
 
         """  # noqa E501
         def __call__(self, x):

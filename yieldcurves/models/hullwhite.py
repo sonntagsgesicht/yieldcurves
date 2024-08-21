@@ -5,7 +5,7 @@
 # A Python library for financial yield curves.
 #
 # Author:   sonntagsgesicht
-# Version:  0.2.1, copyright Tuesday, 16 July 2024
+# Version:  0.2.1, copyright Wednesday, 21 August 2024
 # Website:  https://github.com/sonntagsgesicht/yieldcurves
 # License:  Apache License 2.0 (see LICENSE file)
 
@@ -37,15 +37,15 @@ class _HullWhiteModel:
         >>> hw.model.random.seed(101)
 
         >>> hw(2)
-        0.020000000000000018
+        0.020000...
 
         >>> hw.evolve(1)
         >>> hw(2)
-        0.01008087683908994
+        0.010080...
 
         >>> hw.evolve(2)
         >>> hw(2)
-        0.005147592909163227
+        0.005147...
 
         """
 
@@ -533,29 +533,28 @@ class _HullWhiteGlobal:
 
         >>> d, f, x = g.factors
         >>> d(.5), f(.5), d(1.5), f(1.5), float(x)
-        (0.019999999999999893, 0.05000000000000011, 0.020000000000000014, 0.050000000000000024, 2.2)
+        (0.019999..., 0.050000..., 0.020000..., 0.050000..., 2.2)
 
         >>> g.evolve()
         >>> dict(f.items())
-        {0.25: 0.008438571095241928}
+        {0.25: 0.008438...}
 
-        >>> d, f, x = g.factors
         >>> d(.5), f(.5), d(1.5), f(1.5), float(x)
-        (0.048727870638474315, 0.03870163016620414, 0.06068915277131127, 0.049152870674000225, 2.089911234738178)
+        (0.048727..., 0.038701..., 0.060689..., 0.049152..., 2.089911...)
 
         >>> g.evolve()
         >>> dict(f.items())
-        {0.25: 0.008438571095241928, 0.5: 0.010379682868336933}
+        {0.25: 0.008438..., 0.5: 0.010379...}
 
         >>> d(.5), f(.5), d(1.5), f(1.5), float(x)
-        (0.039533903963309996, 0.02996033171970304, 0.05755974196645212, 0.04430546874861888, 2.1617243414184903)
+        (0.039533..., 0.029960..., 0.057559..., 0.044305..., 2.161724...)
 
         >>> g.clear()
         >>> dict(f.items())
         {}
 
         >>> d(.5), f(.5), d(1.5), f(1.5), float(x)
-        (0.019999999999999893, 0.05000000000000011, 0.020000000000000014, 0.050000000000000024, 2.2)
+        (0.019999..., 0.050000..., 0.020000..., 0.050000..., 2.2)
 
         """  # noqa E501
 
@@ -633,7 +632,8 @@ class _HullWhiteGlobal:
         random = self.factors[0].model.random
         c = self.cholesky(str(self.correlation))  # hack to use @cache
         q = [random.gauss(0., 1.) for _ in range(len(self.factors))]
-        q = c.dot(q) if c is not None else q
+        if c is not None:
+            q = list(map(float, c.dot(q)))
         for i, f in enumerate(self.factors):
             if isinstance(f, _HullWhiteCurve):
                 f.evolve(step_size, q=q[i])

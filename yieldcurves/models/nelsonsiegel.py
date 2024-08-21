@@ -5,7 +5,7 @@
 # A Python library for financial yield curves.
 #
 # Author:   sonntagsgesicht
-# Version:  0.1, copyright Saturday, 22 April 2023
+# Version:  0.2.1, copyright Tuesday, 16 July 2024
 # Website:  https://github.com/sonntagsgesicht/yieldcurves
 # License:  Apache License 2.0 (see LICENSE file)
 
@@ -149,7 +149,7 @@ class NelsonSiegelSvensson:
     def __init__(self, *,
                  beta0=0.0, beta1=0.0, beta2=0.0, beta3=0.0,
                  tau1=1.0, tau2=1.0):
-        """Nelson Siegel Svensson interest term structure cruve
+        r"""Nelson Siegel Svensson interest term structure cruve
 
         :param beta0: $\beta_0$ parameter
         :param beta1: $\beta_1$ parameter
@@ -158,7 +158,7 @@ class NelsonSiegelSvensson:
         :param tau1: $\tau_1$ decay parameter
         :param tau2: $\tau_2$ decay parameter
 
-        >>> from yieldcurves.parametric import NelsonSiegelSvensson
+        >>> from yieldcurves.models import NelsonSiegelSvensson
 
         """
         self.beta0 = beta0

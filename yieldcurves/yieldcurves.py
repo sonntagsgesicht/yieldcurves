@@ -5,7 +5,7 @@
 # A Python library for financial yield curves.
 #
 # Author:   sonntagsgesicht
-# Version:  0.2, copyright Monday, 01 July 2024
+# Version:  0.2.1, copyright Tuesday, 16 July 2024
 # Website:  https://github.com/sonntagsgesicht/yieldcurves
 # License:  Apache License 2.0 (see LICENSE file)
 
@@ -25,7 +25,6 @@ from .tools.constant import init
 EPS = 1e-8
 CASH_FREQUENCY = 4
 SWAP_FREQUENCY = 1
-
 
 
 # --- YieldCurveAdapter ---
@@ -383,10 +382,10 @@ class YieldCurve(_YieldCurveAdapter):
         0.055
 
         >>> yc.spot(10)
-        0.06000000000000001
+        0.059999999999999984
 
         >>> yc.price(10)
-        1.822118800390509
+        1.8221188003905087
 
         """
         pass
@@ -515,7 +514,7 @@ class YieldCurve(_YieldCurveAdapter):
                 if max(abs(a - b) for a, b in zip(_y_list, y_list)) < 1e-7:
                     return _inner(x)
 
-            inner = YieldCurve(None, swap_frequency=self.frequency)
+            inner = YieldCurve(0.0, swap_frequency=self.frequency)
             inner = fit(inner, x_list, y_list, method='swap', precision=1e-7)
             setattr(self, '_fit', (x_list, y_list, inner))
             return inner(x)

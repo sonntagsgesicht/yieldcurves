@@ -1,9 +1,21 @@
+# -*- coding: utf-8 -*-
+
+# yieldcurves
+# -----------
+# A Python library for financial yield curves.
+#
+# Author:   sonntagsgesicht
+# Version:  0.2.1, copyright Tuesday, 16 July 2024
+# Website:  https://github.com/sonntagsgesicht/yieldcurves
+# License:  Apache License 2.0 (see LICENSE file)
+
+
 from functools import cache
 from math import sqrt, exp
 from random import Random
 
 from ..compounding import continuous_compounding, continuous_rate
-from ..tools import integrate
+from ..tools import integrate, ITERABLE
 from ..tools.pp import pretty
 from ..tools.constant import init
 from ..tools.matrix import Matrix, Identity, cholesky
@@ -22,17 +34,19 @@ class _HullWhiteModel:
 
         >>> from yieldcurves.models import HullWhite
         >>> hw = HullWhite.Curve(0.02, mean_reversion=0.1, volatility=0.01)
+        >>> hw.model.random.seed(101)
 
         >>> hw(2)
-        0.02
+        0.020000000000000018
 
         >>> hw.evolve(1)
         >>> hw(2)
-        0.02
+        0.01008087683908994
 
         >>> hw.evolve(2)
         >>> hw(2)
-        0.02
+        0.005147592909163227
+
         """
 
         if not isinstance(mean_reversion, float):
@@ -46,6 +60,8 @@ class _HullWhiteModel:
         self.terminal_date = terminal_date
 
         # prepare for multi currency model
+        if isinstance(domestic, _HullWhiteFactor):
+            domestic = domestic.model
         self.domestic = domestic
         self.fx_volatility = init(fx_volatility)
 
@@ -53,17 +69,57 @@ class _HullWhiteModel:
         self.fx_correlation = fx_correlation
         self.domestic_fx_correlation = domestic_fx_correlation
 
-    @staticmethod
-    @cache
-    def cholesky(domestic_rate, domestic_fx, rate_fx):
-        if domestic_rate == 1. and not any((domestic_fx, rate_fx)):
-            return None
-        corr = [
-            [1., domestic_fx, domestic_rate],
-            [domestic_fx, 1., rate_fx],
-            [domestic_rate, rate_fx, 1.]
-        ]
-        return cholesky(corr, lower=True)
+    def q(self, q=None):
+        """fills list of correlated random numbers
+
+        :param q: float or list of correlated random number
+            q is domestic factor if it is a float or
+
+            q[0] is domestic factor
+            q[1] foreign factor
+            q[2] fx factor
+
+        :return: list of correlated random number with
+
+            q[0] is domestic factor
+            q[1] foreign factor
+            q[2] fx factor
+
+        """
+        if isinstance(q, ITERABLE) and len(q) > 2:
+            return q[:3]
+
+        a = self.domestic_correlation
+        b = self.fx_correlation
+        c = self.domestic_fx_correlation
+        # _corr = [[1, a, b], [a, 1, c], [b, c, 1]]
+        d = sqrt(1 - a ** 2)
+        e = (c - a * b) / d if d else 0.
+        f = sqrt(1 - b ** 2 - e ** 2)
+        # _cholesky = [[1, 0, 0], [a, d, 0], [b, e, f]]
+
+        if q is None:
+            q0 = self.random.gauss(0., 1.)
+            q1 = self.random.gauss(0., 1.)
+            q2 = self.random.gauss(0., 1.)
+        elif isinstance(q, float):
+            q0 = q
+            q1 = self.random.gauss(0., 1.)
+            q2 = self.random.gauss(0., 1.)
+        elif len(q) == 1:
+            q0 = q[0]  # domestic factor = domestic driver
+            q1 = self.random.gauss(0., 1.)
+            q2 = self.random.gauss(0., 1.)
+        elif len(q) == 2:
+            q0 = q[0]  # domestic factor = domestic driver
+            q1 = (q[1] - a * q0) / d if d else q0  # foreign driver
+            q2 = self.random.gauss(0., 1.)
+        else:
+            q0 = self.random.gauss(0., 1.)
+            q1 = self.random.gauss(0., 1.)
+            q2 = self.random.gauss(0., 1.)
+
+        return q0, a * q0 + d * q1, b * q0 + e * q1 + f * q2
 
     # integration helpers for Hull White model
 
@@ -83,7 +139,7 @@ class _HullWhiteModel:
 
     @cache
     def calc_integral_two(self, t1, t2):
-        """calculates integral of integrand I1 (aka integral two)
+        r"""calculates integral of integrand I1 (aka integral two)
 
         $$\textrm{Var}_r(t_1,t_2)
         = \int_{t_1}^{t_2} vol(u)^2 I_1(u,t_2) \,\mathrm{d} u$$
@@ -101,7 +157,8 @@ class _HullWhiteModel:
     def calc_drift_integral(self, t1, t2):
         r"""value of the helper function Integrals
 
-        One of the deterministic terms of a step in the MC simulation is calculated here
+        One of the deterministic terms of a step
+        in the MC simulation is calculated here
         with last observation date for T-Bond numeraire T
 
         $$\int_s^t \sigma^2(u) I_1(u,t) (B(u,t)-B(u,T)) \,\mathrm{d} u
@@ -133,8 +190,8 @@ class _HullWhiteModel:
 
         part1and3 = integrate(func, t1, t2)
         part2 = self.calc_integral_b(t1, t2) * \
-                self.calc_integral_one(t1, t2) * \
-                self.calc_diffusion_integral(0., t1) ** 2
+            self.calc_integral_one(t1, t2) * \
+            self.calc_diffusion_integral(0., t1) ** 2
 
         return part1and3 + part2
 
@@ -149,34 +206,13 @@ class _HullWhiteModel:
 
         return sqrt(integrate(func, t1, t2))
 
-    def evolve(self, t1, t2, x=0., q=None):
+    def evolve_curve(self, t1, t2, x=0., q=None):
         self.calc_integral_two(0., t2)  # pre-calc for __call__
         i1 = self.calc_integral_one(t1, t2)
         i2 = self.calc_drift_integral(t1, t2)
         v = self.calc_diffusion_integral(t1, t2)
         q = self.random.gauss(0., 1.) if q is None else q
         return i1 * x + v * q + i2
-
-    def increments(self, n, *, step_size=None):
-        if isinstance(n, int):
-            if not step_size:
-                step_size = self.terminal_date / n
-            n = [t * step_size for t in range(1, n + 1)]
-        return n
-
-    def sample(self, n=4, *, step_size=None):
-        n = self.increments(n, step_size=step_size)
-        states = []
-        s = x = 0.
-        for e in n:
-            x = self.evolve(s, e, x)
-            states.append(x)
-            s = e
-        return states
-
-    def simulate(self, k=1, n=4, *, step_size=None):
-        n = self.increments(n, step_size=step_size)
-        return [self.sample(n) for _ in range(k)]
 
     def curve(self, curve):
         return HullWhite.Curve(curve, model=self)
@@ -228,15 +264,9 @@ class _HullWhiteModel:
         return part_d, part_x, part_f
 
     def evolve_fx(self, t1, t2, x=0., q=None):
-        d = self.calc_fx_drift_integral(t1, t2)
+        drift = self.calc_fx_drift_integral(t1, t2)
         v_d, v_x, v_f = self.calc_fx_diffusion_integrals(t1, t2)
-        if q is None:
-            c = self.cholesky(self.domestic_correlation,
-                              self.domestic_fx_correlation,
-                              self.fx_correlation)
-            q = [self.random.gauss(0., 1.) for _ in range(3)]
-            q = list(c.dot(q)) if c is not None else q
-        return x + d - v_d * q[0] + v_x * q[1] + v_f * q[2]
+        return x + drift - v_d * q[0] + v_f * q[1] + v_x * q[2]
 
     def fx(self, curve):
         if self.domestic is None:
@@ -257,13 +287,18 @@ class _HullWhiteFactor(dict):
         self.curve = init(curve)
         self.model = HullWhite(**kwargs) if model is None else model
 
-    def evolve(self, step_size=.25, q=None):
-        t = self.t
-        x = t + step_size
-        self[x] = self.model.evolve(t, x, self.get(t, 0.), q)
+    def evolve(self, step_size=.25, *, q=None):
+        raise NotImplementedError("abstract method")
+
+    def increments(self, n, *, step_size=None):
+        if isinstance(n, int):
+            if not step_size:
+                step_size = self.model.terminal_date / n
+            n = [t * step_size for t in range(1, n + 1)]
+        return n
 
     def sample(self, n=4, *, step_size=None):
-        n = self.model.increments(n, step_size=step_size)
+        n = self.increments(n, step_size=step_size)
         states = []
         past = self
         self_t = self.t
@@ -276,7 +311,7 @@ class _HullWhiteFactor(dict):
         return states
 
     def simulate(self, k=1, n=4, *, step_size=None):
-        n = self.model.increments(n, step_size=step_size)
+        n = self.increments(n, step_size=step_size)
         return [self.sample(n) for _ in range(k)]
 
 
@@ -286,12 +321,19 @@ class _HullWhiteCurve(_HullWhiteFactor):
         if y is not None:
             return self(y) / self(x)
         t = self.t
+        if not x:
+            return self.curve(t)
         x += t  # todo: verify spot shift to t
         df = continuous_compounding(self.curve(x), x)
         df /= continuous_compounding(self.curve(t), t)
         b = self.model.calc_integral_b(t, x)
         a = exp(-0.5 * b ** 2 * self.model.calc_integral_two(0.0, t))
         return continuous_rate(df * a * exp(-b * self.get(t, 0.)), x)
+
+    def evolve(self, step_size=.25, *, q=None):
+        t = self.t
+        x = t + step_size
+        self[x] = self.model.evolve_curve(t, x, self.get(t, 0.), q)
 
 
 class _HullWhiteFx(_HullWhiteFactor):
@@ -300,7 +342,7 @@ class _HullWhiteFx(_HullWhiteFactor):
         t = self.t
         return self.curve(t) * exp(self.get(t, 0.))
 
-    def evolve(self, step_size=.25, q=None):
+    def evolve(self, step_size=.25, *, q=None):
         t = self.t
         x = t + step_size
         self[x] = self.model.evolve_fx(t, x, self.get(t, 0.), q)
@@ -311,8 +353,8 @@ class _HullWhiteGlobal:
     random = Random()
 
     @staticmethod
-    def build_correlation(rate_correlation=(), fx_correlation=(),
-                          rate_fx_correlation=()):
+    def foreign_correlation(rate_correlation=(), fx_correlation=(),
+                            rate_fx_correlation=()):
         """builds big correlation matrix with index
             dom, fx_1, foreign_1, fx_2, foreign_2, ...
 
@@ -320,7 +362,7 @@ class _HullWhiteGlobal:
         :param fx_correlation: fx_1, fx_2, ... (symmetric)
         :param rate_fx_correlation:
             dom, foreign_1, foreign_2, ... vs. fx_1, fx_2, ... (non symmetric)
-        :return: dom, fx_1, foreign_1, fx_2, foreign_2, ... (symmetric)
+        :return: dom, foreign_1, fx_1, foreign_2, fx_2, ... (symmetric)
 
         >>> from yieldcurves.models import HullWhite
 
@@ -339,40 +381,47 @@ class _HullWhiteGlobal:
         ...    [0.31, 0.32]
         ... ]
 
-        >>> corr = HullWhite.Global.build_correlation(rate_corr, fx_corr, rate_fx_corr)
+        >>> corr = HullWhite.Global.foreign_correlation(rate_corr, fx_corr, rate_fx_corr)
         >>> corr
-        [[1.0, 0.11, 0.6, 0.12, 0.8],
-         [0.11, 1.0, 0.21, 0.3, 0.31],
-         [0.6, 0.21, 1.0, 0.22, 0.7],
-         [0.12, 0.3, 0.22, 1.0, 0.32],
-         [0.8, 0.31, 0.7, 0.32, 1.0]]
+        [[1.0, 0.6, 0.11, 0.8, 0.12],
+         [0.6, 1.0, 0.21, 0.7, 0.22],
+         [0.11, 0.21, 1.0, 0.31, 0.3],
+         [0.8, 0.7, 0.31, 1.0, 0.32],
+         [0.12, 0.22, 0.3, 0.32, 1.0]]
 
-        """
+        """  # noqa E501
         # init correlation matrix
         #  dom, foreign_1, foreign_2, ..., fx_1, fx_2, ...
         dim = len(rate_correlation)
         correlation = Identity(dim + dim - 1)
         correlation[:dim, :dim] = Matrix(rate_correlation)
         correlation[1 - dim:, 1 - dim:] = Matrix(fx_correlation)
-        correlation[:dim, 1 - dim:] = Matrix(rate_fx_correlation)
-        correlation[1 - dim:, :dim] = Matrix(rate_fx_correlation).T
+
+        c = Matrix(rate_fx_correlation)
+        if c.shape == (dim - 1, dim):
+            c = c.T
+        correlation[:dim, 1 - dim:] = c
+        correlation[1 - dim:, :dim] = c.T
 
         # sort index
-        #  dom, fx_1, foreign_1, fx_2, foreign_2, ...
         permutation = Identity(dim + dim - 1)
+        #  dom, fx_1, foreign_1, fx_2, foreign_2, ...
         s = [i * 2 for i in range(dim)] + [j * 2 + 1 for j in range(dim - 1)]
+        #  dom, foreign_1, fx_1, foreign_2, fx_2, ...
+        s = [0] + [i * 2 + 1 for i in range(dim - 1)] + \
+            [j * 2 + 2 for j in range(dim - 1)]
         permutation[:, :] = permutation[:, s]
 
         return (permutation @ correlation @ permutation.T).tolist()
 
     @staticmethod
-    def build_factors(curves, fx=None, *,
-                      mean_reversion=(), volatility=(), terminal_date=1.,
-                      domestic=None, fx_volatility=()):
+    def foreign_factors(curves, fx=(), *,
+                        mean_reversion=(), volatility=(), terminal_date=1.,
+                        domestic=None, fx_volatility=()):
         """builds list of HullWhite factors (curve + optional fx)
 
         :param curves: list of yield curves
-        :param fx: list of fx rates (optional: default not -> no fx factors)
+        :param fx: list of fx rates (optional: default are 1. fx factors)
         :param mean_reversion: list of mean_reversion values
             (optional: defaults to HullWhite defaults)
         :param volatility: list of rate volatility values
@@ -403,12 +452,12 @@ class _HullWhiteGlobal:
         ... mean_reversion=mean_reversion, volatility=volatility,
         ... domestic=domestic, fx_volatility=())
         >>> factors
-        [HullWhite.Fx(1.2, model=HullWhite(0.12, 0.06, domestic=HullWhite(0.1, 0.04))),
-         HullWhite.Curve(0.02, model=HullWhite(0.12, 0.06, domestic=HullWhite(0.1, 0.04))),
-         HullWhite.Fx(2.3, model=HullWhite(0.21, 0.07, domestic=HullWhite(0.1, 0.04))),
-         HullWhite.Curve(0.03, model=HullWhite(0.21, 0.07, domestic=HullWhite(0.1, 0.04)))]
+        [HullWhite.Curve(0.02, model=HullWhite(0.12, 0.06, domestic=HullWhite(0.1, 0.04))),
+         HullWhite.Fx(1.2, model=HullWhite(0.12, 0.06, domestic=HullWhite(0.1, 0.04))),
+         HullWhite.Curve(0.03, model=HullWhite(0.21, 0.07, domestic=HullWhite(0.1, 0.04))),
+         HullWhite.Fx(2.3, model=HullWhite(0.21, 0.07, domestic=HullWhite(0.1, 0.04)))]
 
-        """
+        """  # noqa E501
         if isinstance(domestic, _HullWhiteFactor):
             domestic = domestic.model
 
@@ -428,10 +477,10 @@ class _HullWhiteGlobal:
             fx_vol = fx_volatility.get(i, default.fx_volatility)
             model = HullWhite(mr, vol, terminal_date=terminal_date,
                               domestic=domestic, fx_volatility=fx_vol)
+            factors.append(model.curve(c))
             if fx is not None:
                 # add fx if given
                 factors.append(model.fx(fx.get(i, 1.)))
-            factors.append(model.curve(c))
         return factors
 
     @classmethod
@@ -455,13 +504,12 @@ class _HullWhiteGlobal:
             if len(curves):
                 c, *curves = curves
             domestic = HullWhite(mr, vol, terminal_date=terminal_date).curve(c)
-        factors = cls.build_factors(curves,
-                                    fx=fx,
-                                    mean_reversion=mean_reversion,
-                                    volatility=volatility,
-                                    terminal_date=terminal_date,
-                                    domestic=domestic,
-                                    fx_volatility=fx_volatility)
+        factors = cls.foreign_factors(curves, fx=fx,
+                                      mean_reversion=mean_reversion,
+                                      volatility=volatility,
+                                      terminal_date=terminal_date,
+                                      domestic=domestic,
+                                      fx_volatility=fx_volatility)
         return cls([domestic] + factors, correlation=correlation)
 
     def __init__(self, factors, correlation=None):
@@ -470,59 +518,81 @@ class _HullWhiteGlobal:
         :param factors:
         :param correlation:
 
-        >>> HullWhite.Global([domestic] + factors, correlation=corr)
+        >>> from yieldcurves.models import HullWhite
 
-        or
+        >>> rate_corr = [[1.0, 0.6], [0.6, 1.0]]
+        >>> fx_corr = [[1.0]]
+        >>> rate_fx_corr = [[0.22], [0.33]]
+        >>> corr = HullWhite.Global.foreign_correlation(rate_corr, fx_corr, rate_fx_corr)
 
-        >>> g = HullWhite.Global([domestic] + factors)
-        >>> g.correlation = corr
+        >>> domestic = HullWhite(0.1, 0.05).curve(0.02)
+        >>> foreign =  HullWhite(0.2, 0.02, domestic=domestic, fx_volatility=0.2).curve(0.05)
+        >>> fx = foreign.model.fx(2.2)
 
-        >>> print(*(f(.5)) for f in g.factors))
+        >>> g = HullWhite.Global([domestic, foreign, fx], correlation=corr)
+
+        >>> d, f, x = g.factors
+        >>> d(.5), f(.5), d(1.5), f(1.5), float(x)
+        (0.019999999999999893, 0.05000000000000011, 0.020000000000000014, 0.050000000000000024, 2.2)
 
         >>> g.evolve()
-        >>> print(*(dict(f.items()) for f in g.factors))
-        >>> print(*(f(.5)) for f in g.factors))
+        >>> dict(f.items())
+        {0.25: 0.008438571095241928}
+
+        >>> d, f, x = g.factors
+        >>> d(.5), f(.5), d(1.5), f(1.5), float(x)
+        (0.048727870638474315, 0.03870163016620414, 0.06068915277131127, 0.049152870674000225, 2.089911234738178)
 
         >>> g.evolve()
-        >>> print(*(dict(f.items()) for f in g.factors))
-        >>> print(*(f(.5)) for f in g.factors))
+        >>> dict(f.items())
+        {0.25: 0.008438571095241928, 0.5: 0.010379682868336933}
+
+        >>> d(.5), f(.5), d(1.5), f(1.5), float(x)
+        (0.039533903963309996, 0.02996033171970304, 0.05755974196645212, 0.04430546874861888, 2.1617243414184903)
 
         >>> g.clear()
-        >>> print(*(f(.5)) for f in g.factors))
+        >>> dict(f.items())
+        {}
+
+        >>> d(.5), f(.5), d(1.5), f(1.5), float(x)
+        (0.019999999999999893, 0.05000000000000011, 0.020000000000000014, 0.050000000000000024, 2.2)
 
         """
-        # set first factor as domestic
-        domestic, *factors = factors
 
-        # validate domestic
-        if domestic.model.domestic is not None:
-            msg = f"domestic model must not have domestic model {domestic}"
-            raise ValueError(msg)
-
-        # validate model order
-        for i in range(0, len(factors), 2):
-            if not isinstance(factors[i + 1], _HullWhiteCurve):
-                cls = factors[i].__class__.__qualname__
-                raise ValueError(f'curve factor {i + 1} of wrong type: {cls}')
-            if not isinstance(factors[i], _HullWhiteFx):
-                cls = factors[i].__class__.__qualname__
-                raise ValueError(f'fx factor {i} of wrong type: {cls}')
-            if not factors[i].model == factors[i + 1].model:
-                raise ValueError(f'factor model {i}  and {i + 1} differ')
-            if not factors[i].model.domestic == domestic.model:
-                d = factors[i].model.domestic
-                msg = f"domestic factor model {str(d)!r}" \
-                      f" differs from {str(domestic.model)!r}"
-                raise ValueError(msg)
-
-        self.factors = (domestic,) + tuple(factors)
+        self.factors = factors
         self.correlation = correlation
 
-        if correlation is not None and \
-                not len(self.factors) == len(correlation):
-            msg = f"correlation of wrong size {len(correlation)}" \
-                  f" expected size {len(factors)}"
-            raise ValueError(msg)
+        if correlation:
+            if not len(factors) == len(correlation):
+                msg = f"correlation of wrong size {len(correlation)}" \
+                      f" expected size {len(factors)}"
+                raise ValueError(msg)
+
+        if factors:
+            # set first factor as domestic
+            domestic, *factors = factors
+
+            # validate domestic
+            if domestic.model.domestic is not None:
+                msg = f"domestic model must not have domestic model {domestic}"
+                raise ValueError(msg)
+
+            # validate model order
+            for i in range(0, len(factors), 2):
+                if not isinstance(factors[i], _HullWhiteCurve):
+                    cls = factors[i].__class__.__qualname__
+                    msg = f'curve factor {i} of wrong type: {cls}'
+                    raise ValueError(msg)
+                if not isinstance(factors[i + 1], _HullWhiteFx):
+                    cls = factors[i].__class__.__qualname__
+                    raise ValueError(f'fx factor {i + 1} of wrong type: {cls}')
+                if not factors[i].model == factors[i + 1].model:
+                    raise ValueError(f'factor model {i}  and {i + 1} differ')
+                if not factors[i].model.domestic == domestic.model:
+                    d = factors[i].model.domestic
+                    msg = f"domestic factor model {str(d)!r}" \
+                          f" differs from {str(domestic.model)!r}"
+                    raise ValueError(msg)
 
     @cache
     def cholesky(self, h):
@@ -551,11 +621,11 @@ class _HullWhiteGlobal:
 
     @property
     def domestic(self):
-        return self.factors[0]
+        return self.factors[0] if self.factors else None
 
     @property
     def t(self):
-        return self.domestic.t
+        return self.domestic.t if self.domestic else None
 
     def evolve(self, step_size=.25):
         if not self.factors:
@@ -566,9 +636,9 @@ class _HullWhiteGlobal:
         q = c.dot(q) if c is not None else q
         for i, f in enumerate(self.factors):
             if isinstance(f, _HullWhiteCurve):
-                f.evolve(step_size, q[i])
+                f.evolve(step_size, q=q[i])
             elif isinstance(f, _HullWhiteFx):
-                f.evolve(step_size, [q[0], q[i], q[i + 1]])
+                f.evolve(step_size, q=[q[0], q[i - 1], q[i]])
             else:
                 raise TypeError(f"cannot evolve {f.__class__.__qualname__}")
 
@@ -603,11 +673,14 @@ class _HullWhiteGlobal:
 
 class HullWhite(_HullWhiteModel):
 
-    class Curve(_HullWhiteCurve): ...
+    class Curve(_HullWhiteCurve):
+        ...
 
-    class Fx(_HullWhiteFx): ...
+    class Fx(_HullWhiteFx):
+        ...
 
-    class Global(_HullWhiteGlobal): ...
+    class Global(_HullWhiteGlobal):
+        ...
 
 
 if __name__ == '__main__':

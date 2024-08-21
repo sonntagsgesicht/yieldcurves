@@ -18,6 +18,15 @@ Yield Curve
 .. autoclass:: YieldCurveOperator
 
 
+Curve Models
+============
+
+.. module:: yieldcurves.models
+
+.. autoclass:: NelsonSiegelSvensson
+.. autoclass:: HullWhite
+
+
 Date Curve
 ==========
 

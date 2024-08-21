@@ -5,11 +5,13 @@
 # A Python library for financial yield curves.
 #
 # Author:   sonntagsgesicht
-# Version:  0.2, copyright Monday, 01 July 2024
+# Version:  0.2.1, copyright Tuesday, 16 July 2024
 # Website:  https://github.com/sonntagsgesicht/yieldcurves
 # License:  Apache License 2.0 (see LICENSE file)
 
+
 from scipy.integrate import quad  # noqa F401
+
 
 def integrate(func, a, b):
     return quad(func, a, b)[0]
@@ -82,16 +84,16 @@ def quadrature(f, a, b):
 
 # Example usage
 if __name__ == "__main__":
-    from math import exp, sin, pi
-    from scipy.integrate import quad
+    from math import exp, pi
+    from scipy.integrate import quad as _scipy_quad
 
-    f = lambda x: exp(-x ** 2)
+    f = (lambda x: exp(-x ** 2))
     a = 0.0
     b = 1.0
     n = 7
 
     print(f"quadrature:         {quadrature(f, a, b)}")
-    print(f"scipy:              {quad(f, a, b)[0]}")
+    print(f"scipy:              {_scipy_quad(f, a, b)[0]}")
     print(f"trapezoidal_rule:   {trapezoidal_rule(f, a, b, 1000)}")
 
 # Example usage:
@@ -105,7 +107,6 @@ if __name__ == "__main__":
     derivative = finite_difference(f, x_point)
     print("Derivative at x =", x_point, "is", derivative)
 
-
     # Integrate func from 0 to π with 1000 intervals
     result = trapezoidal_rule(f, a, b, 1000)
     print("Integral trapezoidal_rule result:", result)
@@ -115,5 +116,5 @@ if __name__ == "__main__":
     print("Integral quadrature result:      ", result)
 
     # Integrate func from 0 to π with 1000 intervals
-    result = quad(f, a, b)[0]
+    result = _scipy_quad(f, a, b)[0]
     print("Integral scipy result:           ", result)

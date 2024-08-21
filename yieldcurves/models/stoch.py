@@ -1,3 +1,13 @@
+# -*- coding: utf-8 -*-
+
+# yieldcurves
+# -----------
+# A Python library for financial yield curves.
+#
+# Author:   sonntagsgesicht
+# Version:  0.2.1, copyright Tuesday, 16 July 2024
+# Website:  https://github.com/sonntagsgesicht/yieldcurves
+# License:  Apache License 2.0 (see LICENSE file)
 
 
 from math import sqrt
@@ -44,7 +54,8 @@ class StochasticProcess:
 
     def __init__(self, step_size=0.25, driver=None):
         """
-            base class for stochastic process :math:`X`, e.g. Wiener process :math:`W` or Markov chain :math:`M`
+            base class for stochastic process :math:`X`,
+            e.g. Wiener process :math:`W` or Markov chain :math:`M`
 
         """
         self.driver = driver or Random()

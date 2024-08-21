@@ -1,5 +1,4 @@
 from unittest import TestCase
-from datetime import date
 
 from businessdate import BusinessRange, BusinessDate
 from businessdate import daycount as dcc
@@ -88,6 +87,7 @@ class YearFrachtionInverseUnitTests(TestCase):
                 # self.assertEqual(x, a._inverse(f), msg=(d, a))
                 self.assertEqual(x, a._inverse1(f), msg=(d, a))
                 self.assertEqual(x, a._inverse2(f), msg=(d, a))
+
 
 class DateCurveUnitTests(TestCase):
 

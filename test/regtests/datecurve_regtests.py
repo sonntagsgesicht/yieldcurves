@@ -1,7 +1,6 @@
 from regtest import RegressionTestCase
-from datetime import date
 
-from businessdate import BusinessRange, BusinessDate
+from businessdate import BusinessDate
 from businessdate import daycount as dcc
 
 from yieldcurves.datecurves import DateCurve

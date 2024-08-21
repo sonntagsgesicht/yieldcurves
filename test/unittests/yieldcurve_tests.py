@@ -85,14 +85,18 @@ class YieldCurveTests(TestCase):
                 self.assertAlmostEqual(f(x), g(x), places=places, msg=g)
 
     def test_interest_rate_curve(self):
-        f = YieldCurve(
-            0.02, compounding_frequency=4, cash_frequency=4, swap_frequency=2)
+        f = YieldCurve(0.02,
+                       compounding_frequency=4,
+                       cash_frequency=4,
+                       swap_frequency=2)
         self._test_interest_rate_curve(f)
         self._test_cash_rate_curve(f)
         self._test_swap_rate_curve(f, places=5)
 
-        f = YieldCurve(self.nss, compounding_frequency=4, cash_frequency=4,
-            swap_frequency=2)
+        f = YieldCurve(self.nss,
+                       compounding_frequency=4,
+                       cash_frequency=4,
+                       swap_frequency=2)
         self._test_interest_rate_curve(f)
         self._test_cash_rate_curve(f)
         self._test_swap_rate_curve(f, places=3)

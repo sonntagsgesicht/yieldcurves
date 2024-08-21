@@ -3,6 +3,7 @@ from regtest import RegressionTestCase
 from yieldcurves.models import NelsonSiegelSvensson, HullWhite
 from yieldcurves.tools import lin
 
+
 class HullWhiteRegTests(RegressionTestCase):
 
     def setUp(self):
@@ -78,7 +79,7 @@ class HullWhiteRegTests(RegressionTestCase):
         self.assertRaises(ValueError, HullWhite.Global, factors)
         # HullWhite.Global([domestic] + 2* factors, corr)
         self.assertRaises(
-            ValueError, HullWhite.Global, [domestic] + 2* factors, corr)
+            ValueError, HullWhite.Global, [domestic] + 2 * factors, corr)
 
     def test_global_simulation(self):
         rate_corr = [

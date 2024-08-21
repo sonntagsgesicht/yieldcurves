@@ -381,8 +381,8 @@ class YieldCurve(_YieldCurveAdapter):
         >>> yc(5)  # spot rate
         0.055
 
-        >>> yc.spot(10.0)
-        0.0599999...
+        >>> yc.spot(7.5)
+        0.0574999...
 
         >>> yc.price(10)
         1.8221188...

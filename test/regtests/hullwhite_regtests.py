@@ -51,6 +51,28 @@ class HullWhiteRegTests(RegressionTestCase):
             foreign.evolve(q=q[1])
             fx.evolve(q=q)
 
+    def test_foreign_fx_curve(self):
+        domestic = \
+            HullWhite(mean_reversion=0.1, volatility=0.05).curve(self.curve)
+        domestic.model.random.seed(101)
+        foreign = HullWhite(mean_reversion=0.1, volatility=0.05,
+                            fx_volatility=0.2, domestic=domestic.model,
+                            domestic_correlation=0.6, fx_correlation=0.2,
+                            domestic_fx_correlation=0.1).curve(self.curve)
+        fx = foreign.model.fx(
+            2., domestic_curve=domestic, foreign_curve=foreign)
+
+        for _ in range(10):
+            self.assertAlmostRegressiveEqual(float(fx))
+            for t in lin(0., 10., 0.25):
+                self.assertAlmostRegressiveEqual(fx(t))
+                self.assertAlmostRegressiveEqual(domestic(t))
+                self.assertAlmostRegressiveEqual(foreign(t))
+            q = domestic.model.q()
+            domestic.evolve(q=q[0])
+            foreign.evolve(q=q[1])
+            fx.evolve(q=q)
+
     def test_global_exceptions(self):
         rate_corr = [
             [1.0, 0.6, 0.8],

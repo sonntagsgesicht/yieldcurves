@@ -268,10 +268,12 @@ class _HullWhiteModel:
         v_d, v_x, v_f = self.calc_fx_diffusion_integrals(t1, t2)
         return x + drift - v_d * q[0] + v_f * q[1] + v_x * q[2]
 
-    def fx(self, curve):
+    def fx(self, curve, domestic_curve=0.0, foreign_curve=0.0):
         if self.domestic is None:
             raise ValueError('multi currency models require domestic model')
-        return HullWhite.Fx(curve, model=self)
+        return HullWhite.Fx(curve, model=self,
+                            domestic_curve=domestic_curve,
+                            foreign_curve=foreign_curve)
 
 
 @pretty
@@ -285,7 +287,9 @@ class _HullWhiteFactor(dict):
     def __init__(self, curve, *, model=None, **kwargs):
         super().__init__()
         self.curve = init(curve)
-        self.model = HullWhite(**kwargs) if model is None else model
+        if model is None:
+            model = HullWhite(**kwargs)
+        self.model = model
 
     def evolve(self, step_size=.25, *, q=None):
         raise NotImplementedError("abstract method")
@@ -338,9 +342,23 @@ class _HullWhiteCurve(_HullWhiteFactor):
 
 class _HullWhiteFx(_HullWhiteFactor):
 
+    def __init__(self, curve, *, model=None,
+                 domestic_curve=0.0, foreign_curve=0.0, **kwargs):
+        super().__init__(curve, model=model, **kwargs)
+        self.domestic_curve = init(domestic_curve)
+        self.foreign_curve = init(foreign_curve)
+
     def __float__(self):
         t = self.t
         return self.curve(t) * exp(self.get(t, 0.))
+
+    def __call__(self, x, y=None):
+        if y is not None:
+            return self(y) / self(x)
+        # todo: verify spot shift to t, i.e. implied spot shift here
+        df = continuous_compounding(self.domestic_curve(x), x)
+        df /= continuous_compounding(self.foreign_curve(x), x)
+        return float(self) * df
 
     def evolve(self, step_size=.25, *, q=None):
         t = self.t
@@ -458,6 +476,9 @@ class _HullWhiteGlobal:
          HullWhite.Fx(2.3, model=HullWhite(0.21, 0.07, domestic=HullWhite(0.1, 0.04)))]
 
         """  # noqa E501
+        domestic_curve = None
+        if isinstance(domestic, _HullWhiteCurve):
+            domestic_curve = domestic
         if isinstance(domestic, _HullWhiteFactor):
             domestic = domestic.model
 
@@ -477,10 +498,16 @@ class _HullWhiteGlobal:
             fx_vol = fx_volatility.get(i, default.fx_volatility)
             model = HullWhite(mr, vol, terminal_date=terminal_date,
                               domestic=domestic, fx_volatility=fx_vol)
-            factors.append(model.curve(c))
-            if fx is not None:
-                # add fx if given
-                factors.append(model.fx(fx.get(i, 1.)))
+            foreign_curve = model.curve(c)
+            factors.append(foreign_curve)
+            if fx is not None:  # add fx if given
+                if domestic_curve is not None:
+                    fx_curve = model.fx(fx.get(i, 1.),
+                                        domestic_curve=domestic_curve,
+                                        foreign_curve=foreign_curve)
+                else:
+                    fx_curve = model.fx(fx.get(i, 1.))
+                factors.append(fx_curve)
         return factors
 
     @classmethod
@@ -681,27 +708,3 @@ class HullWhite(_HullWhiteModel):
 
     class Global(_HullWhiteGlobal):
         ...
-
-
-if __name__ == '__main__':
-
-    rates = 'EUR', 'USD', 'GBP'
-    fx = 'EURUSD', 'EURGBP'
-
-    rate_corr = [
-        [1.0, 0.6, 0.8],
-        [0.6, 1.0, 0.7],
-        [0.8, 0.7, 1.0]
-    ]
-    fx_corr = [
-        [1.0, 0.3],
-        [0.3, 1.0]
-    ]
-    rate_fx_corr = [
-        [0.01, 0.20],
-        [0.11, 0.12],
-        [0.12, 0.21]
-    ]
-
-    corr = HullWhite.Global.merge_correlation(rate_corr, fx_corr, rate_fx_corr)
-    print(corr)

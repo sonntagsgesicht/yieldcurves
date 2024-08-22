@@ -348,6 +348,13 @@ class _HullWhiteFx(_HullWhiteFactor):
         self.domestic_curve = init(domestic_curve)
         self.foreign_curve = init(foreign_curve)
 
+        if isinstance(self.domestic_curve, _HullWhiteFactor):
+            if not self.model.domestic == self.domestic_curve.model:
+                raise ValueError('domestic model does not match')
+        if isinstance(self.foreign_curve, _HullWhiteFactor):
+            if not self.model == self.foreign_curve.model:
+                raise ValueError('model does not match')
+
     def __float__(self):
         t = self.t
         return self.curve(t) * exp(self.get(t, 0.))

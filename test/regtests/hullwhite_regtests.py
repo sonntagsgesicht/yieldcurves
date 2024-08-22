@@ -73,6 +73,21 @@ class HullWhiteRegTests(RegressionTestCase):
             foreign.evolve(q=q[1])
             fx.evolve(q=q)
 
+    def test_foreign_fx_exceptions(self):
+        domestic = HullWhite(0.1, 0.05).curve(self.curve)
+        foreign = HullWhite(0.2, 0.1, fx_volatility=0.2,
+                            domestic=domestic.model).curve(self.curve)
+        self.assertRaises(ValueError, HullWhite.Fx, 1.,
+                          model=domestic.model, domestic_curve=domestic,
+                          foreign_curve=foreign)
+        self.assertRaises(ValueError, HullWhite.Fx, 1.,
+                          model=foreign.model, domestic_curve=foreign,
+                          foreign_curve=foreign)
+        self.assertRaises(ValueError, HullWhite.Fx, 1.,
+                          model=foreign.model, domestic_curve=domestic,
+                          foreign_curve=domestic)
+
+
     def test_global_exceptions(self):
         rate_corr = [
             [1.0, 0.6, 0.8],

@@ -10,7 +10,7 @@
 # License:  Apache License 2.0 (see LICENSE file)
 
 
-class ConstantCurve:
+class constant:
     """constant curve"""
 
     def __init__(self, curve):
@@ -32,9 +32,51 @@ class ConstantCurve:
         return repr(self.curve)
 
     def __eq__(self, other):
-        if isinstance(other, ConstantCurve):
+        if isinstance(other, constant):
             other = other.curve
         return self.curve == other
+
+    def __neg__(self):
+        return self.__class__(-self.curve)
+
+    def __abs__(self):
+        return self.__class__(abs(self.curve))
+
+    def __add__(self, other):
+        return self.__class__(self.curve + other)
+
+    def __radd__(self, other):
+        return other + self.curve
+
+    def __sub__(self, other):
+        return self.__class__(self.curve - other)
+
+    def __rsub__(self, other):
+        return other - self.curve
+
+    def __mult__(self, other):
+        return self.__class__(self.curve * other)
+
+    def __rmult__(self, other):
+        return other * self.curve
+
+    def __truediv__(self, other):
+        return self.__class__(self.curve / other)
+
+    def __rtruediv__(self, other):
+        return other / self.curve
+
+    def __floordiv__(self, other):
+        return self.__class__(self.curve // other)
+
+    def __rfloordiv__(self, other):
+        return other // self.curve
+
+    def __mod__(self, other):
+        return self.__class__(self.curve % other)
+
+    def __rmod__(self, other):
+        return other % self.curve
 
 
 def init(curve):
@@ -44,4 +86,4 @@ def init(curve):
         cls = curve.__class__.__qualname__
         msg = f"float or callable required but type {cls} given"
         raise TypeError(msg)
-    return ConstantCurve(curve)
+    return constant(curve)

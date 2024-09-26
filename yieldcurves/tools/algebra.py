@@ -14,6 +14,7 @@ from math import prod
 
 from vectorizeit import vectorize
 from .pp import pretty
+from .constant import init
 
 
 @pretty
@@ -28,13 +29,13 @@ class AlgebraCurve:
 
     def __init__(self, curve=None, *, add=[], sub=[], mul=[], div=[], pre=[],
                  spread=0.0, leverage=1.0, multiplier=1.0, inplace=False):
-        self.curve = curve
+        self.curve = None if curve is None else init(curve)
 
-        self.add = list(add)
-        self.sub = list(sub)
-        self.mul = list(mul)
-        self.div = list(div)
-        self.pre = list(pre)
+        self.add = list(map(init, add))
+        self.sub = list(map(init, sub))
+        self.mul = list(map(init, mul))
+        self.div = list(map(init, div))
+        self.pre = list(map(init, pre))
         self.spread = spread
         self.leverage = leverage
         self.multiplier = multiplier
@@ -66,14 +67,11 @@ class AlgebraCurve:
         return (self.spread + self.leverage * r) * self.multiplier
 
     def x__getattr__(self, item):
+        # yc = AlgebraCurve(YieldCurve(0.05)) + 0.05
+        # yc(2) == yc.curve(2)  # False
+        # yc.df(2) == yc.curve.df(2)  # True
         if hasattr(self.curve, item):
-            def func(*args, **kwargs):
-                args = tuple(self.year_fraction(x) for x in args)
-                kwargs = {k: self.year_fraction(y) for k, y in kwargs.items()}
-                return getattr(self.curve, item)(*args, **kwargs)
-            func.__qualname__ = self.__class__.__qualname__ + '.' + item
-            func.__name__ = item
-            return func
+            return getattr(self.curve, item)
         msg = f"{self.__class__.__name__!r} object has no attribute {item!r}"
         raise AttributeError(msg)
 
@@ -83,6 +81,7 @@ class AlgebraCurve:
         return curve
 
     def __add__(self, other):
+        other = init(other)
         curve = self if self.inplace else self.__copy__()
         if other in curve.sub:
             curve.sub.pop(curve.sub.index(other))
@@ -91,9 +90,11 @@ class AlgebraCurve:
         return curve
 
     def __radd__(self, other):
+        other = init(other)
         return AlgebraCurve(other) + self
 
     def __sub__(self, other):
+        other = init(other)
         curve = self if self.inplace else self.__copy__()
         if other in curve.add:
             curve.add.pop(curve.add.index(other))
@@ -102,9 +103,11 @@ class AlgebraCurve:
         return curve
 
     def __rsub__(self, other):
+        other = init(other)
         return AlgebraCurve(other) - self
 
     def __mul__(self, other):
+        other = init(other)
         curve = self if self.inplace else self.__copy__()
         if other in curve.div:
             curve.div.pop(curve.div.index(other))
@@ -113,9 +116,11 @@ class AlgebraCurve:
         return curve
 
     def __rmul__(self, other):
+        other = init(other)
         return AlgebraCurve(other) * self
 
     def __truediv__(self, other):
+        other = init(other)
         curve = self if self.inplace else self.__copy__()
         if other in curve.mul:
             curve.mul.pop(curve.mul.index(other))
@@ -124,6 +129,7 @@ class AlgebraCurve:
         return curve
 
     def __rtruediv__(self, other):
+        other = init(other)
         return AlgebraCurve(other) / self
 
     def __pos__(self):
@@ -136,9 +142,11 @@ class AlgebraCurve:
         raise NotImplementedError()
 
     def __matmul__(self, other):
+        other = init(other)
         curve = self if self.inplace else self.__copy__()
         curve.pre.append(other)
         return curve
 
     def __rmatmul__(self, other):
+        other = init(other)
         return AlgebraCurve(other) @ self

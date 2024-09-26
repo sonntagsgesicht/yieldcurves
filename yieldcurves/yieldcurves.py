@@ -454,6 +454,7 @@ class YieldCurve(_YieldCurveAdapter):
 
         """
         def __call__(self, x):
+            x = x or 1e-12
             return continuous_rate(self.curve(x) / self.curve(0), x)
 
         def df(self, x, y=None):

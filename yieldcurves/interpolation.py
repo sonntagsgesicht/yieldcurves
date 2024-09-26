@@ -14,7 +14,9 @@ from bisect import bisect_left, bisect_right
 from collections import UserDict
 from math import exp, log
 from reprlib import Repr
+from typing import Dict, Iterable, Callable, Tuple
 
+from .tools.numerics import bisection_method, newton_raphson, secant_method
 from .tools.pp import pretty
 
 
@@ -23,6 +25,63 @@ _repr.maxlist = _repr.maxtuple = 1
 _repr.maxset = _repr.maxfrozenset = 1
 _repr.maxdict = 1
 _repr.maxsting = _repr.maxother = 40
+
+
+def fit(curve,
+        grid: Iterable[float],
+        err_func_list: Iterable[Callable],
+        target_list: Iterable[float] | None = None,
+        bounds: Tuple[float, float] = (-0.1, 0.2),
+        tolerance: float = 1e-10,
+        interpolation_type: str | Callable | None = None,
+        ) -> Dict[float, float]:
+    """ fit according to calibration routine to target values
+
+    >>> from yieldcurves import constant
+    >>> from yieldcurves.tools import fit
+
+    >>> curve = constant(0.0)
+    >>> grid = [-1., 0., 1., 2.34]
+    >>> err_func_list = [(lambda: curve(t) / 2 - 1) for t in grid]
+    >>> target_list = [1., 2., 3., 4.]
+
+    >>> fit(curve, grid, err_func_list, target_list)
+    [4.0..., 6.0..., 8.0..., 10.0...]
+
+    """
+    grid = tuple(grid)
+    if target_list is None:
+        target_list = [0.0] * len(grid)
+    if interpolation_type is None:
+        func = piecewise_linear
+    elif isinstance(interpolation_type, str):
+        func = globals()[interpolation_type]
+    else:
+        func = interpolation_type
+    addon = func(grid, [0.0] * len(grid))
+    curve += addon
+    for t, f, v in zip(grid, err_func_list, target_list):
+        # set error function
+        def err(current):
+            addon[t] = current
+            return f() - v
+        # run root finding
+        try:
+            a, b = bounds
+            bisection_method(err, a, b, tolerance)
+        except ValueError:
+            try:
+                guess = sum(bounds) / 2
+                newton_raphson(err, guess, tolerance)
+            except ZeroDivisionError:
+                try:
+                    a, b = sum(bounds) / 3, sum(bounds) / 2
+                    secant_method(f, a, b, tolerance)
+                except ZeroDivisionError as e:
+                    raise e
+
+    curve -= addon
+    return dict(addon.items())
 
 
 class plist(list):
@@ -384,6 +443,59 @@ class linear(base_interpolation):
         i = bisect_left(self.x_list, float(x), 1, len(self.x_list) - 1)
         return self.y_list[i - 1] + (self.y_list[i] - self.y_list[i - 1]) * \
             (self.x_list[i - 1] - x) / (self.x_list[i - 1] - self.x_list[i])
+
+
+class piecewise_linear(linear):
+
+    def __init__(self, x_list=(), y_list=()):
+        r"""piecewise linear curve
+
+        :param x_list: points $x_1 \dots x_n$
+        :param y_list: values $y_1 \dots y_n$
+
+        A |piecewise_linear()| object is a function $f$
+        returning at $x$ the linear interpolated float of
+        $y_i$ and $y_{i+1}$ when $x_i \leq x < x_{i+1}$, i.e.
+        $$f(x)=(y_{i+1}-y_i) \cdot \frac{x-x_i}{x_{i+1}-x_i}$$
+
+        and
+
+        $y_1$ if $x \leq x_1$
+
+        as well as
+
+        $y_n$ if $x_n <x$.
+
+
+        >>> from yieldcurves import piecewise_linear
+        >>> c = piecewise_linear([1.,2.,3.], [2.,3.,4.])
+        >>> c(0.)
+        2.0
+        >>> c(1.)
+        2.0
+        >>> c(1.5)
+        2.5
+        >>> c(1.51)
+        2.51
+        >>> c(2.)
+        3.0
+        >>> c(3.)
+        4.0
+        >>> c(4)
+        4.0
+        """
+        super().__init__(x_list, y_list)
+
+    def __call__(self, x):
+        if not self:
+            cls = self.__class__.__name__
+            raise ValueError(f"{cls} must contain at least one point")
+        x = float(x)
+        if len(self) == 1 or x <= self.x_list[0]:
+            return self.y_list[0]
+        if self.x_list[-1] <= x:
+            return self.y_list[-1]
+        return super().__call__(x)
 
 
 class loglinear(linear):

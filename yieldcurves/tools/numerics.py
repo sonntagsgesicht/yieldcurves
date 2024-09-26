@@ -5,7 +5,7 @@
 # A Python library for financial yield curves.
 #
 # Author:   sonntagsgesicht
-# Version:  0.2.2, copyright Thursday, 22 August 2024
+# Version:  0.2.2, copyright Thursday, 26 September 2024
 # Website:  https://github.com/sonntagsgesicht/yieldcurves
 # License:  Apache License 2.0 (see LICENSE file)
 
@@ -173,7 +173,7 @@ def secant_method(f, a, b, tol=TOL, max_iter=MAX_ITER):
         fb = f(b)
 
         if abs(fb - fa) < tol:
-            msg = "Denominator is too small at {a=} and {b=}"
+            msg = f"Denominator is too small at {a=} and {b=}"
             raise ZeroDivisionError(msg)
 
         # Compute the next approximation
@@ -243,4 +243,4 @@ if __name__ == "__main__":
 
     print(f"newton_raphson: {newton_raphson(f, 1.0)}")
     print(f"bisection_method: {bisection_method(f, -1.0, 2.0)}")
-    print(f"secant_method: {secant_method(f,1.0, 2.0)}")
+    print(f"secant_method: {secant_method(f, 1.0, 2.0)}")

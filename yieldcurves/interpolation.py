@@ -5,7 +5,7 @@
 # A Python library for financial yield curves.
 #
 # Author:   sonntagsgesicht
-# Version:  0.2.2, copyright Thursday, 22 August 2024
+# Version:  0.2.2, copyright Thursday, 26 September 2024
 # Website:  https://github.com/sonntagsgesicht/yieldcurves
 # License:  Apache License 2.0 (see LICENSE file)
 
@@ -14,7 +14,7 @@ from bisect import bisect_left, bisect_right
 from collections import UserDict
 from math import exp, log
 from reprlib import Repr
-from typing import Dict, Iterable, Callable, Tuple
+# from typing import Dict, Iterable, Callable, Tuple
 
 from .tools.numerics import bisection_method, newton_raphson, secant_method
 from .tools.pp import pretty
@@ -28,27 +28,31 @@ _repr.maxsting = _repr.maxother = 40
 
 
 def fit(curve,
-        grid: Iterable[float],
-        err_func_list: Iterable[Callable],
-        target_list: Iterable[float] | None = None,
-        bounds: Tuple[float, float] = (-0.1, 0.2),
-        tolerance: float = 1e-10,
-        interpolation_type: str | Callable | None = None,
-        ) -> Dict[float, float]:
+        grid,  # grid: Iterable[float],
+        err_func_list,  # err_func_list: Iterable[Callable],
+        target_list=None,  # target_list: Iterable[float] | None = None,
+        interpolation_type=None,  # interpolation_type: str | Callable | None = None,  # noqa E501
+        method='secant_method',  # method; str = 'secant_method'
+        bounds=(-0.1, 0.2),  # bounds: Tuple[float, float] = (-0.1, 0.2),
+        tolerance=1e-10,  # tolerance: float = 1e-10,
+        ):  # ) -> Dict[float, float]:
     """ fit according to calibration routine to target values
 
-    >>> from yieldcurves import constant
-    >>> from yieldcurves.tools import fit
+    >>> from functools import partial
+    >>> from yieldcurves import YieldCurve, AlgebraCurve
+    >>> from yieldcurves.interpolation import fit
 
-    >>> curve = constant(0.0)
-    >>> grid = [-1., 0., 1., 2.34]
-    >>> err_func_list = [(lambda: curve(t) / 2 - 1) for t in grid]
-    >>> target_list = [1., 2., 3., 4.]
+    >>> yc = YieldCurve(AlgebraCurve(0.0, inplace=True))
+    >>> grid = [1., 1.8, 2., 2.34]
+    >>> err_func_list = [partial(yc.df, t) for t in grid]
+    >>> target_list =  [0.94, 0.93, 0.92, 0.91]
 
-    >>> fit(curve, grid, err_func_list, target_list)
-    [4.0..., 6.0..., 8.0..., 10.0...]
+    >>> fit(yc.curve, grid, err_func_list, target_list)
+    {1.0: 0.06187540363412898, 1.8: 0.040317051604091554, 2.0: 0.04169080450970588, 2.34: 0.040303709259234204}
 
-    """
+    """  # noqa E501
+    if not getattr(curve, 'inplace', False):
+        raise TypeError("fit requires AlgebraCurve(..., inplace=True)")
     grid = tuple(grid)
     if target_list is None:
         target_list = [0.0] * len(grid)
@@ -66,19 +70,18 @@ def fit(curve,
             addon[t] = current
             return f() - v
         # run root finding
-        try:
+
+        if method == 'newton_raphson':
+            guess = sum(bounds) / 2
+            newton_raphson(err, guess, tolerance)
+        elif method == 'secant_method':
+            a, b = sum(bounds) / 3, sum(bounds) / 2
+            secant_method(err, a, b, tolerance)
+        elif method == 'bisection_method':
             a, b = bounds
             bisection_method(err, a, b, tolerance)
-        except ValueError:
-            try:
-                guess = sum(bounds) / 2
-                newton_raphson(err, guess, tolerance)
-            except ZeroDivisionError:
-                try:
-                    a, b = sum(bounds) / 3, sum(bounds) / 2
-                    secant_method(f, a, b, tolerance)
-                except ZeroDivisionError as e:
-                    raise e
+        else:
+            raise ValueError(f"unkown method {method}")
 
     curve -= addon
     return dict(addon.items())
@@ -467,7 +470,7 @@ class piecewise_linear(linear):
         $y_n$ if $x_n <x$.
 
 
-        >>> from yieldcurves import piecewise_linear
+        >>> from yieldcurves.interpolation import piecewise_linear
         >>> c = piecewise_linear([1.,2.,3.], [2.,3.,4.])
         >>> c(0.)
         2.0

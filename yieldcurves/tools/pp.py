@@ -5,7 +5,7 @@
 # A Python library for financial yield curves.
 #
 # Author:   sonntagsgesicht
-# Version:  0.2.2, copyright Thursday, 22 August 2024
+# Version:  0.2.2, copyright Thursday, 26 September 2024
 # Website:  https://github.com/sonntagsgesicht/yieldcurves
 # License:  Apache License 2.0 (see LICENSE file)
 
@@ -117,8 +117,8 @@ def prepr(self, *args, clsmethod='', sep=', ', **kwargs):
     kwargs = {k: getattr(v, '__qualname__', r(v)) for k, v in kwargs.items()}
 
     # build repr string
-    params = tuple(f"{a}" for a in args) + \
-        tuple(f"{k}={v}" for k, v in kwargs.items())
+    params = tuple(f"{a}" for a in args)
+    params += tuple(f"{k}={v}" for k, v in kwargs.items())
     clsmethod = '.' + clsmethod if clsmethod else ''
     return f"{self.__class__.__qualname__}{clsmethod}({sep.join(params)})"
 

@@ -330,6 +330,7 @@ class DateCurve:
                 return getattr(self.curve, item)(*args, **kwargs)
             func.__qualname__ = self.__class__.__qualname__ + '.' + item
             func.__name__ = item
+            func.__self__ = self
             return func
         msg = f"{self.__class__.__name__!r} object has no attribute {item!r}"
         raise AttributeError(msg)

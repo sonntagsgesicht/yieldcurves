@@ -71,13 +71,13 @@ def fit(curve,
             return f() - v
         # run root finding
 
-        if method == 'newton_raphson':
+        if 'newton' in method:
             guess = sum(bounds) / 2
             newton_raphson(err, guess, tolerance)
-        elif method == 'secant_method':
+        elif 'secant' in method:
             a, b = sum(bounds) / 3, sum(bounds) / 2
             secant_method(err, a, b, tolerance)
-        elif method == 'bisection_method':
+        elif 'bisec' in method:
             a, b = bounds
             bisection_method(err, a, b, tolerance)
         else:

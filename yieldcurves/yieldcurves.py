@@ -13,9 +13,10 @@
 from math import prod
 import warnings
 
-from .compounding import simple_rate, simple_compounding, periodic_rate, \
-    periodic_compounding, continuous_compounding, continuous_rate
-
+from .compounding import (simple_rate, simple_compounding, periodic_rate,
+                          periodic_compounding, continuous_compounding,
+                          continuous_rate)
+from . import interpolation as _interpolation
 from .tools import integrate, ITERABLE, snake_case
 from .tools.fit import fit
 from .tools.pp import pretty
@@ -31,6 +32,19 @@ SWAP_FREQUENCY = 1
 
 @pretty
 class _YieldCurveAdapter:
+
+    @classmethod
+    def from_interpolation(cls, domain, values,
+                           interpolation='piecewise_linear', *,
+                           spot_price=None, compounding_frequency=None,
+                           cash_frequency=None, swap_frequency=None):
+        interpolation = \
+            getattr(_interpolation, str(interpolation), interpolation)
+        curve = interpolation(domain, values)
+        return cls(curve, spot_price=spot_price,
+                   compounding_frequency=compounding_frequency,
+                   cash_frequency=cash_frequency,
+                   swap_frequency=swap_frequency)
 
     def __init__(self, curve, *, spot_price=None, compounding_frequency=None,
                  cash_frequency=None, swap_frequency=None):
@@ -817,6 +831,7 @@ class Swap(YieldCurveOperator):
 
 
 # --- credit prob operators ---
+
 
 class Prob(YieldCurveOperator):
     """survival probability curve from |YieldCurve|"""

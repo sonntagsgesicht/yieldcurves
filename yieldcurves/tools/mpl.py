@@ -56,3 +56,32 @@ def lin(start, stop, step):
     while r[-1] + step < stop:
         r.append(r[-1] + step)
     return r
+
+
+class Plotter:
+
+    def __init__(self, x):
+        self.x = x
+
+    def __call__(self, *curve, legend=True, figsize=(10, 5), kind='plot',
+                 backend=None, params=(), show=True, xlim=(), ylim=(),
+                 **curves):
+        return plot(self.x, *curve, legend=legend, figsize=figsize,
+                    kind=kind, backend=backend, params=params, show=show,
+                    xlim=xlim, ylim=ylim, **curves)
+
+    def __getitem__(self, item):
+        if not isinstance(item, slice):
+            item = slice(item)
+        start, stop, step = item.start, item.stop, item.step
+        if start is None:
+            start = 0.
+        if stop is None:
+            stop = 1.
+        if step is None:
+            step = (stop - start) / 100
+        x = lin(start, stop, step)
+        return Plotter(x)
+
+
+plotter = Plotter(lin(0., 1., 0.01))

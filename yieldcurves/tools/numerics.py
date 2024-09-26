@@ -5,9 +5,10 @@
 # A Python library for financial yield curves.
 #
 # Author:   sonntagsgesicht
-# Version:  0.2.1, copyright Tuesday, 16 July 2024
+# Version:  0.2.2, copyright Thursday, 22 August 2024
 # Website:  https://github.com/sonntagsgesicht/yieldcurves
 # License:  Apache License 2.0 (see LICENSE file)
+
 
 TOL = 1e-8
 MAX_ITER = 1_000

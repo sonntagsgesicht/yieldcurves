@@ -5,7 +5,7 @@
 # A Python library for financial yield curves.
 #
 # Author:   sonntagsgesicht
-# Version:  0.2.1, copyright Wednesday, 21 August 2024
+# Version:  0.2.2, copyright Thursday, 22 August 2024
 # Website:  https://github.com/sonntagsgesicht/yieldcurves
 # License:  Apache License 2.0 (see LICENSE file)
 
@@ -13,7 +13,7 @@
 __doc__ = 'A Python library for financial yield curves.'
 __version__ = '0.2.2'
 __dev_status__ = '4 - Beta'
-__date__ = 'Thursday, 22 August 2024'
+__date__ = 'Thursday, 26 September 2024'
 __author__ = 'sonntagsgesicht'
 __email__ = 'sonntagsgesicht@icloud.com'
 __url__ = 'https://github.com/sonntagsgesicht/' + __name__

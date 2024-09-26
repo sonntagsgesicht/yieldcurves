@@ -66,6 +66,9 @@ class DateCurve:
         self.yf = yf
         self._cache[self._cache_key] = self._cache.get(self._cache_key, {})
 
+    def __bool__(self):
+        return bool(self.curve)
+
     def _parse_date(self, d):
         if d is None:
             return

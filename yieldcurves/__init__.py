@@ -11,7 +11,7 @@
 
 
 __doc__ = 'A Python library for financial yield curves.'
-__version__ = '0.2.1'
+__version__ = '0.2.2'
 __dev_status__ = '4 - Beta'
 __date__ = 'Thursday, 22 August 2024'
 __author__ = 'sonntagsgesicht'
@@ -27,23 +27,19 @@ __theme__ = 'sphinx_rtd_theme'
 import logging
 logging.getLogger(__name__).addHandler(logging.NullHandler())
 
+# todo:
+#  [ ] extract .tools to extra projects
+#  [ ] consolidate .tools.fit, .tools.numerics and .interpolation.fit
+#  [ ] add global calibration using 'lmfit' (https://lmfit.github.io/lmfit-py/)
+
+
 from . import compounding  # noqa E401 E402
 from . import interpolation  # noqa E401 E402
 
 from .datecurves import DateCurve  # noqa E401 E402
-from .yieldcurves import *  # noqa E401 E402
+from .tools.algebra import AlgebraCurve  # noqa E401 E402
+from .tools.mpl import plotter  # noqa E401 E402
 from .tools.pp import pretty  # noqa E401 E402
-
-
-@pretty
-class eye:
-    def __init__(self, curve=None):
-        r"""identity function $x \mapsto x$
-
-        :param x: float
-        :return: identity value **x**
-        """
-        self.curve = curve
-
-    def __call__(self, x):
-        return x if self.curve is None else self.curve(x)
+from .tools.eye import eye  # noqa E401 E402
+from .tools.constant import constant, init  # noqa E401 E402
+from .yieldcurves import *  # noqa E401 E402

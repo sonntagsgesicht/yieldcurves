@@ -35,6 +35,14 @@ Date Curve
 .. autoclass:: DateCurve
 
 
+Algebra Curve
+=============
+
+.. module:: yieldcurves.tools.algebra
+
+.. autoclass:: AlgebraCurve
+
+
 Fundamentals
 ============
 

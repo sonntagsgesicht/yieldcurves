@@ -31,6 +31,7 @@ logging.getLogger(__name__).addHandler(logging.NullHandler())
 #  [ ] extract .tools to extra projects
 #  [ ] consolidate .tools.fit, .tools.numerics and .interpolation.fit
 #  [ ] add global calibration using 'lmfit' (https://lmfit.github.io/lmfit-py/)
+#  [ ] doc AlgebraCurve and @pretty
 
 
 from . import compounding  # noqa E401 E402

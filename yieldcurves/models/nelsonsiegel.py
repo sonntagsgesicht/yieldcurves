@@ -104,7 +104,7 @@ def download_ecb(start='', end='', last=None, aaa_only=True):
 
     If no arguments to select dates are given latest parameters are loaded.
 
-    >>> from yieldcurves.parametric import spot_rate, download_ecb
+    >>> from yieldcurves.models.nelsonsiegel import spot_rate, download_ecb
 
     """
     root = "https://data-api.ecb.europa.eu/service/data/YC/"
@@ -136,19 +136,21 @@ def download_ecb(start='', end='', last=None, aaa_only=True):
             if line:
                 key, _date, value = line.split(',')[pos]
                 res[_date] = res.get(_date, {})
+                res[_date]['timestamp'] = _date
                 res[_date][key.lower()] = float(value)
     return res
 
 
 @pretty
 class NelsonSiegelSvensson:
-    __slots__ = 'beta0', 'beta1', 'beta2', 'beta3', 'tau1', 'tau2'
+    __slots__ = 'beta0', 'beta1', 'beta2', 'beta3', 'tau1', 'tau2', 'timestamp'
 
-    _download = {}
+    downloads = {}
+    """dictionary of downloaded curves with keys as dates as string"""
 
     def __init__(self, *,
                  beta0=0.0, beta1=0.0, beta2=0.0, beta3=0.0,
-                 tau1=1.0, tau2=1.0):
+                 tau1=1.0, tau2=1.0, timestamp=None):
         r"""Nelson Siegel Svensson interest term structure cruve
 
         :param beta0: $\beta_0$ parameter
@@ -157,6 +159,7 @@ class NelsonSiegelSvensson:
         :param beta3: $\beta_3$ parameter
         :param tau1: $\tau_1$ decay parameter
         :param tau2: $\tau_2$ decay parameter
+        :param timestamp: timestamp of curve
 
         >>> from yieldcurves.models import NelsonSiegelSvensson
 
@@ -167,9 +170,14 @@ class NelsonSiegelSvensson:
         self.beta3 = beta3
         self.tau1 = tau1
         self.tau2 = tau2
+        self.timestamp = timestamp
 
     def __call__(self, x):
         return self.spot(x)
+
+    @property
+    def __ts__(self):
+        return date.fromisoformat(self.timestamp)
 
     def spot(self, x):
         r"""spot interest rate
@@ -185,7 +193,8 @@ class NelsonSiegelSvensson:
                  + \beta_3 \left( \frac{1 - e^{-\frac{x}{\tau_2}}}{\frac{x}{\tau_2}} - e^{-\frac{x}{\tau_2}} \right)
 
         """  # noqa 501
-        params = {k: getattr(self, k) for k in self.__slots__}
+        params = {k: getattr(self, k) for k in self.__slots__
+                  if not k == 'timestamp'}
         return spot_rate(x, **params)
 
     def short(self, x):
@@ -202,36 +211,54 @@ class NelsonSiegelSvensson:
                  + \beta_3 \left( e^{-\frac{x}{\tau_2}} \frac{x}{\tau_2} \right)
 
         """  # noqa 501
-        params = {k: getattr(self, k) for k in self.__slots__}
+        params = {k: getattr(self, k) for k in self.__slots__
+                  if not k == 'timestamp'}
         return short_rate(x, **params)
 
     @classmethod
     def download(cls, t=None):
         """build curve with parameters from ecb
-
         :param t: date of parameters or (if of integer) latest parameter
         :return:
+
+        >>> from yieldcurves.models import NelsonSiegelSvensson
+        >>> nss = NelsonSiegelSvensson.download('2024-10-01')
+        >>> nss
+
+        or load a bulk of curves, here the last of the last 10 days
+
+        >>> nss = NelsonSiegelSvensson.download(10)
+        >>> nss
+
+        to get all already loaded curves
+
+        >>> NelsonSiegelSvensson.downloads
+
         """
-        if not cls._download:
-            cls._download = download_ecb()
-        if t is None:
-            *_, t = tuple(cls._download)
-        if isinstance(t, int):
-            params = download_ecb(last=t)
-            t = next(iter(reversed(params)))
-            cls._download.update(params)
         if isinstance(t, date):
             t = t.strftime('%Y-%m-%d')
-        if t not in cls._download:
-            cls._download.update(download_ecb(start=t, end=t))
-        cls._download = dict(sorted(cls._download.items()))
-        return cls(**cls._download[t])
+        if t is None:
+            # return latest available
+            d = {k: cls(**v) for k, v in download_ecb().items()}
+            cls.downloads.update(d)
+            t = next(iter(d))  # pick first
+        if isinstance(t, int):
+            # load last t
+            d = {k: cls(**v) for k, v in download_ecb(last=t).items()}
+            cls.downloads.update(d)
+            t = next(iter(d))  # pick first
+        if t not in cls.downloads:
+            # load missing t
+            d = {k: cls(**v) for k, v in download_ecb(start=t, end=t).items()}
+            cls.downloads.update(d)
+        cls.downloads = dict(sorted(cls.downloads.items()))
+        return cls.downloads[t]
 
     @classmethod
     @property
     def download_dates(cls):
         """available parameter dates"""
-        return tuple(cls._download)
+        return tuple(cls.downloads)
 
 
 class NelsonSiegelSvenssonShortRate(NelsonSiegelSvensson):

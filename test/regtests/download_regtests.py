@@ -15,13 +15,13 @@ class DownloadRegTests(RegressionTestCase):
         # self.assertRegressiveEqual(dl == dl2)
 
     def test_download_nss(self):
-        NSS._download = {}
-        self.assertRegressiveEqual(0 == len(NSS._download))
+        NSS.downloads = {}
+        self.assertRegressiveEqual(0 == len(NSS.downloads))
         NSS.download()
-        self.assertRegressiveEqual(10 == len(NSS._download))
+        self.assertRegressiveEqual(10 == len(NSS.downloads))
         self.assertRegressiveEqual(
-            len(NSS.download_dates) == len(NSS._download))
+            len(NSS.download_dates) == len(NSS.downloads))
         date = '2020-02-24'
         NSS.download(date)
-        self.assertRegressiveEqual(11 < len(NSS._download))
+        self.assertRegressiveEqual(11 < len(NSS.downloads))
         self.assertRegressiveEqual(NSS.download_dates[0] == date)

@@ -13,13 +13,14 @@
 from math import prod
 import warnings
 
+from prettyclass import prettyclass
+
 from .compounding import (simple_rate, simple_compounding, periodic_rate,
                           periodic_compounding, continuous_compounding,
                           continuous_rate)
 from . import interpolation as _interpolation
 from .tools import integrate, ITERABLE, snake_case
 from .tools.fit import fit
-from .tools.pp import pretty
 from .tools.constant import init
 
 
@@ -30,7 +31,7 @@ SWAP_FREQUENCY = 1
 
 # --- YieldCurveAdapter ---
 
-@pretty
+@prettyclass
 class _YieldCurveAdapter:
 
     @classmethod

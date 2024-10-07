@@ -13,19 +13,18 @@
 from math import prod
 
 from vectorizeit import vectorize
-from .pp import pretty
+from prettyclass import prettyclass
+
 from .constant import init
 
 
-@pretty
+@prettyclass
 class AlgebraCurve:
     """algebraic operations on curves
 
     (c1 + ... + cn)
     * m1 * ... * mk / d1 / ... / dl
     + a1 + ... at - s1 - ... - sr"""
-    __slots__ = 'curve', 'add', 'sub', 'mul', 'div', 'pre', \
-        'spread', 'leverage', 'multiplier', 'inplace'
 
     def __init__(self, curve=None, *, add=[], sub=[], mul=[], div=[], pre=[],
                  spread=0.0, leverage=1.0, multiplier=1.0, inplace=False):
@@ -41,10 +40,6 @@ class AlgebraCurve:
         self.multiplier = multiplier
 
         self.inplace = inplace
-
-    def __copy__(self):
-        kwargs = {k: getattr(self, k) for k in self.__slots__}
-        return self.__class__(**kwargs)
 
     @vectorize()
     def __call__(self, x):

@@ -13,7 +13,7 @@
 __doc__ = 'A Python library for financial yield curves.'
 __version__ = '0.2.2'
 __dev_status__ = '4 - Beta'
-__date__ = 'Thursday, 26 September 2024'
+__date__ = 'Monday, 07 October 2024'
 __author__ = 'sonntagsgesicht'
 __email__ = 'sonntagsgesicht@icloud.com'
 __url__ = 'https://github.com/sonntagsgesicht/' + __name__
@@ -31,7 +31,7 @@ logging.getLogger(__name__).addHandler(logging.NullHandler())
 #  [ ] extract .tools to extra projects
 #  [ ] consolidate .tools.fit, .tools.numerics and .interpolation.fit
 #  [ ] add global calibration using 'lmfit' (https://lmfit.github.io/lmfit-py/)
-#  [ ] doc AlgebraCurve and @pretty
+#  [ ] doc AlgebraCurve and @prettyclass
 
 
 from . import compounding  # noqa E401 E402
@@ -40,7 +40,6 @@ from . import interpolation  # noqa E401 E402
 from .datecurves import DateCurve  # noqa E401 E402
 from .tools.algebra import AlgebraCurve  # noqa E401 E402
 from .tools.mpl import plotter  # noqa E401 E402
-from .tools.pp import pretty  # noqa E401 E402
 from .tools.eye import eye  # noqa E401 E402
 from .tools.constant import constant, init  # noqa E401 E402
 from .yieldcurves import *  # noqa E401 E402

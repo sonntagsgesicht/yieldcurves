@@ -15,8 +15,8 @@ from math import exp
 
 import requests
 from vectorizeit import vectorize
+from prettyclass import prettyclass
 
-from ..tools.pp import pretty
 
 """_params = {
     'beta0': 1.0138959988,
@@ -141,10 +141,8 @@ def download_ecb(start='', end='', last=None, aaa_only=True):
     return res
 
 
-@pretty
+@prettyclass
 class NelsonSiegelSvensson:
-    __slots__ = 'beta0', 'beta1', 'beta2', 'beta3', 'tau1', 'tau2', 'timestamp'
-
     downloads = {}
     """dictionary of downloaded curves with keys as dates as string"""
 
@@ -193,9 +191,9 @@ class NelsonSiegelSvensson:
                  + \beta_3 \left( \frac{1 - e^{-\frac{x}{\tau_2}}}{\frac{x}{\tau_2}} - e^{-\frac{x}{\tau_2}} \right)
 
         """  # noqa 501
-        params = {k: getattr(self, k) for k in self.__slots__
-                  if not k == 'timestamp'}
-        return spot_rate(x, **params)
+        return spot_rate(x,
+                         beta0=self.beta0, beta1=self.beta1, beta2=self.beta2,
+                         beta3=self.beta3, tau1=self.tau1, tau2=self.tau2)
 
     def short(self, x):
         r"""short rate (instantaneous spot rate)
@@ -211,9 +209,9 @@ class NelsonSiegelSvensson:
                  + \beta_3 \left( e^{-\frac{x}{\tau_2}} \frac{x}{\tau_2} \right)
 
         """  # noqa 501
-        params = {k: getattr(self, k) for k in self.__slots__
-                  if not k == 'timestamp'}
-        return short_rate(x, **params)
+        return short_rate(x,
+                          beta0=self.beta0, beta1=self.beta1, beta2=self.beta2,
+                          beta3=self.beta3, tau1=self.tau1, tau2=self.tau2)
 
     @classmethod
     def download(cls, t=None):
@@ -222,19 +220,20 @@ class NelsonSiegelSvensson:
         :return:
 
         >>> from yieldcurves.models import NelsonSiegelSvensson
-        >>> nss = NelsonSiegelSvensson.download('2024-10-01')
+        >>> nss = NelsonSiegelSvensson.download('2024-08-01')
         >>> nss
+        NelsonSiegelSvensson(beta0=0.3930624673, beta1=3.0642695848, beta2=-6.0856376597, beta3=9.3989699383, tau1=4.0804649054, tau2=9.9328952349, timestamp='2024-08-01')
 
         or load a bulk of curves, here the last of the last 10 days
 
-        >>> nss = NelsonSiegelSvensson.download(10)
-        >>> nss
+        >>> _ = NelsonSiegelSvensson.download(10)
 
         to get all already loaded curves
 
-        >>> NelsonSiegelSvensson.downloads
+        >>> len(NelsonSiegelSvensson.downloads)
+        11
 
-        """
+        """  # noqa E501
         if isinstance(t, date):
             t = t.strftime('%Y-%m-%d')
         if t is None:

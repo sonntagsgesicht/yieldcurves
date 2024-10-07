@@ -14,14 +14,15 @@ from functools import cache
 from math import sqrt, exp
 from random import Random
 
+from prettyclass import prettyclass
+
 from ..compounding import continuous_compounding, continuous_rate
 from ..tools import integrate, ITERABLE
-from ..tools.pp import pretty
 from ..tools.constant import init
 from ..tools.matrix import Matrix, Identity, cholesky
 
 
-@pretty
+@prettyclass
 class _HullWhiteModel:
     """Hull White model in terminal measure from sport rates"""
     random = Random()   # nosec B311
@@ -276,7 +277,7 @@ class _HullWhiteModel:
                             foreign_curve=foreign_curve)
 
 
-@pretty
+@prettyclass
 class _HullWhiteFactor(dict):
 
     @property
@@ -373,7 +374,7 @@ class _HullWhiteFx(_HullWhiteFactor):
         self[x] = self.model.evolve_fx(t, x, self.get(t, 0.), q)
 
 
-@pretty
+@prettyclass
 class _HullWhiteGlobal:
     random = Random()  # nosec B311
 

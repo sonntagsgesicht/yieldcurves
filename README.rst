@@ -91,7 +91,7 @@ Documentation
 -------------
 
 More documentation available at
-`http://yieldcurves.readthedocs.io <http://yieldcurves.readthedocs.io>`_
+`https://yieldcurves.readthedocs.io <https://yieldcurves.readthedocs.io>`_
 
 
 Install

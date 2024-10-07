@@ -12,14 +12,15 @@
 
 from datetime import timedelta, date
 
+from prettyclass import prettyclass
+
 from . import interpolation as _interpolation
-from .yieldcurves import YieldCurve
-from .tools.pp import pretty
 from .tools import ITERABLE
+from .yieldcurves import YieldCurve
 from .tools.fit import simple_bracketing, inverse
 
 
-@pretty
+@prettyclass
 class DateCurve:
     BASEDATE = date.today()
     DAYS_IN_YEAR = 365.25

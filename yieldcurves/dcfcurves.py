@@ -10,11 +10,12 @@
 # License:  Apache License 2.0 (see LICENSE file)
 
 
+from prettyclass import prettyclass
+
 from .datecurves import DateCurve
-from .tools.pp import pretty
 
 
-@pretty
+@prettyclass
 class DcfCurve(DateCurve):
 
     def get_discount_factor(self, start, stop=None):

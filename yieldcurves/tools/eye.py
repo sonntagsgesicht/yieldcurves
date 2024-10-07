@@ -10,10 +10,10 @@
 # License:  Apache License 2.0 (see LICENSE file)
 
 
-from .pp import pretty
+from prettyclass import prettyclass
 
 
-@pretty
+@prettyclass
 class eye:
     def __init__(self, curve=None):
         r"""identity function $x \mapsto x$

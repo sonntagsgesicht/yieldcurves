@@ -16,8 +16,9 @@ from math import exp, log
 from reprlib import Repr
 # from typing import Dict, Iterable, Callable, Tuple
 
+from prettyclass import prettyclass
+
 from .tools.numerics import bisection_method, newton_raphson, secant_method
-from .tools.pp import pretty
 
 
 _repr = Repr()
@@ -93,7 +94,7 @@ class plist(list):
         return _repr.repr(list(self))
 
 
-@pretty
+@prettyclass(init=False)
 class base_interpolation(UserDict):
     """
     Basic class to interpolate given data.
@@ -648,7 +649,7 @@ class logconstantrate(constant):
         return exp(-log_y * x)
 
 
-@pretty
+@prettyclass
 class base_extrapolation:
 
     def __init__(self, mid, left=None, right=None):

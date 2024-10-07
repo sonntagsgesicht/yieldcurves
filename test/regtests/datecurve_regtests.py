@@ -3,8 +3,8 @@ from regtest import RegressionTestCase
 from businessdate import BusinessDate
 from businessdate import daycount as dcc
 
-from yieldcurves.datecurves import DateCurve
-from yieldcurves.tools import lin, AlgebraCurve
+from yieldcurves import AlgebraCurve, DateCurve
+from yieldcurves.tools import lin
 
 
 day_count = DateCurve.dyf

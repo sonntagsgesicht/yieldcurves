@@ -39,22 +39,22 @@ class DateCurve:
             (optional, default is *actual/365.25*)
 
         >>> from datetime import date
-        >>> from yieldcurves import DateCurve, eye
+        >>> from yieldcurves import DateCurve, eye  # eye = identity curve
 
-        >>> yc = DateCurve(eye(), origin=date(2024,1,1))
+        >>> yc = DateCurve(eye, origin=date(2024,1,1))
         >>> yc(date(2025,1,1))
         1.002053388090349
 
         >>> from businessdate import BusinessDate  # date extension for finance
         >>> from businessdate.daycount import get_30_360  # handles date
 
-        >>> yc = DateCurve(eye(), origin=date(2024,1,1), yf=get_30_360)
+        >>> yc = DateCurve(eye, origin=date(2024,1,1), yf=get_30_360)
         >>> yc(date(2025,1,1))
         1.0
         >>> yc(BusinessDate(20250101))  # BusinessDate behaves like date
         1.0
 
-        >>> byc = DateCurve(eye(), origin=BusinessDate(20240101), yf=get_30_360)
+        >>> byc = DateCurve(eye, origin=BusinessDate(20240101), yf=get_30_360)
         >>> byc(BusinessDate(20250101))
         1.0
 
@@ -159,7 +159,7 @@ class DateCurve:
         >>> from yieldcurves import DateCurve, eye
 
         >>> today = BusinessDate(20240101)
-        >>> yc = DateCurve(eye(), origin=today, yf=get_act_act)
+        >>> yc = DateCurve(eye, origin=today, yf=get_act_act)
 
         >>> yc.year_fraction(today)
         0.0
@@ -214,7 +214,7 @@ class DateCurve:
         >>> from yieldcurves import DateCurve, eye
 
         >>> today = BusinessDate(20241231)
-        >>> yc = DateCurve(eye(), origin=today, yf=get_30_360)
+        >>> yc = DateCurve(eye, origin=today, yf=get_30_360)
         >>> yc.inverse(1.7)
         BusinessDate(20260912)
 

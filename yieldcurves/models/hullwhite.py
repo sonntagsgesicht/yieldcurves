@@ -17,7 +17,8 @@ from random import Random
 from prettyclass import prettyclass
 
 from ..compounding import continuous_compounding, continuous_rate
-from ..tools import integrate, ITERABLE
+from ..tools import ITERABLE
+from ..tools.numerics import integrate
 from ..tools.constant import init
 from ..tools.matrix import Matrix, Identity, cholesky
 

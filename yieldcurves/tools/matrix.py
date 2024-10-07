@@ -11,4 +11,28 @@
 
 
 from numpy import array as Matrix, eye as Identity  # noqa F401
-from scipy.linalg import cholesky  # noqa F401
+
+
+def cholesky(A, lower=True):
+    """
+    Performs the Cholesky decomposition of a matrix A.
+    A must be a symmetric, positive-definite matrix.
+
+    Returns the lower triangular matrix L such that A = L * L.T
+    """
+    import numpy as np
+
+    A = Matrix(A)
+    n = A.shape[0]
+    L = A * 0
+
+    for i in range(n):
+        for j in range(i + 1):
+            if i == j:  # Diagonal elements
+                sum_k = np.sum(L[i, :j] ** 2)
+                L[i, j] = np.sqrt(A[i, i] - sum_k)
+            else:  # Off-diagonal elements
+                sum_k = np.sum(L[i, :j] * L[j, :j])
+                L[i, j] = (A[i, j] - sum_k) / L[j, j]
+
+    return L if lower else L.T

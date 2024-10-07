@@ -11,9 +11,8 @@
 
 
 from re import compile as _compile
-from .mpl import plot, lin  # noqa F401
-from .algebra import AlgebraCurve  # noqa F401
-from .numerics import integrate  # noqa F401
+
+from .plot import plot, lin  # noqa F401
 
 
 EPS = 1 / 365.25

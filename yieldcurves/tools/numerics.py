@@ -15,13 +15,6 @@ MAX_ITER = 1_000
 EPS = 1e-7
 
 
-from scipy.integrate import quad  # noqa F401
-
-
-def integrate(func, a, b):
-    return quad(func, a, b)[0]
-
-
 def finite_difference(f, x, h=EPS):
     """
     Numerically differentiate the function f at point x
@@ -85,6 +78,10 @@ def quadrature(f, a, b):
     m = 0.5 * (b + a)
     h = 0.5 * (b - a)
     return sum(w * f(m + h * n) for n, w in nodes.items()) * h
+
+
+def integrate(func, a, b):
+    return quadrature(func, a, b)
 
 
 def newton_raphson(f, a, tol=TOL, max_iter=MAX_ITER):

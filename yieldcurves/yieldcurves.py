@@ -19,7 +19,8 @@ from .compounding import (simple_rate, simple_compounding, periodic_rate,
                           periodic_compounding, continuous_compounding,
                           continuous_rate)
 from . import interpolation as _interpolation
-from .tools import integrate, ITERABLE, snake_case
+from .tools import ITERABLE, snake_case
+from .tools.numerics import integrate
 from .tools.fit import fit
 from .tools.constant import init
 
@@ -414,7 +415,7 @@ class YieldCurve(_YieldCurveAdapter):
         >>> c = linear([0, 10], [0.05, 0.06])
         >>> yc = YieldCurve.from_short_rates(c)
         >>> yc(5)  # spot rate
-        0.05250000000000001
+        0.052500000000000005
 
         >>> yc.short(10)
         0.06

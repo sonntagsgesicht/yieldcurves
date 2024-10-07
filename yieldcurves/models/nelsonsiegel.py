@@ -141,7 +141,7 @@ def download_ecb(start='', end='', last=None, aaa_only=True):
     return res
 
 
-@prettyclass
+@prettyclass(init=False)
 class NelsonSiegelSvensson:
     downloads = {}
     """dictionary of downloaded curves with keys as dates as string"""

@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-
 # yieldcurves
 # -----------
 # A Python library for financial yield curves.
@@ -61,14 +60,11 @@ class AlgebraCurve:
 
         return (self.spread + self.leverage * r) * self.multiplier
 
-    def x__getattr__(self, item):
-        # yc = AlgebraCurve(YieldCurve(0.05)) + 0.05
-        # yc(2) == yc.curve(2)  # False
-        # yc.df(2) == yc.curve.df(2)  # True
-        if hasattr(self.curve, item):
-            return getattr(self.curve, item)
-        msg = f"{self.__class__.__name__!r} object has no attribute {item!r}"
-        raise AttributeError(msg)
+    def __copy__(self):
+        cls = self.__class__
+        args = ('add', 'sub', 'mul', 'div', 'pre',
+                'spread', 'leverage', 'multiplier', 'inplace')
+        return cls(self.curve, **{a: getattr(self, a) for a in args})
 
     def __neg__(self):
         curve = self if self.inplace else self.__copy__()
@@ -145,3 +141,6 @@ class AlgebraCurve:
     def __rmatmul__(self, other):
         other = init(other)
         return AlgebraCurve(other) @ self
+
+
+eye = AlgebraCurve()

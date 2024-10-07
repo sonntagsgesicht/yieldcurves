@@ -6,3 +6,4 @@ regtest
 scipy
 tabulate
 vectorizeit
+prettyclass

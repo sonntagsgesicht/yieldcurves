@@ -38,9 +38,13 @@ Date Curve
 Algebra Curve
 =============
 
-.. module:: yieldcurves.tools.algebra
+.. automodule:: yieldcurves.tools.algebra
 
-.. autoclass:: AlgebraCurve
+
+Constant Curve
+==============
+
+.. automodule:: yieldcurves.tools.constant
 
 
 Fundamentals

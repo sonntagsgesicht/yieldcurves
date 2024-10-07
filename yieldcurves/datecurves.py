@@ -38,7 +38,9 @@ class DateCurve:
             (optional, default is *actual/365.25*)
 
         >>> from datetime import date
-        >>> from yieldcurves import DateCurve, eye  # eye = identity curve
+        >>> from yieldcurves import DateCurve 
+        
+        >>> eye = lambda x: x  # identity curve
 
         >>> yc = DateCurve(eye, origin=date(2024,1,1))
         >>> yc(date(2025,1,1))
@@ -155,7 +157,9 @@ class DateCurve:
 
         >>> from businessdate import BusinessRange, BusinessDate
         >>> from businessdate.daycount import get_act_act
-        >>> from yieldcurves import DateCurve, eye
+        >>> from yieldcurves import DateCurve
+
+        >>> eye = lambda x: x  # identity curve
 
         >>> today = BusinessDate(20240101)
         >>> yc = DateCurve(eye, origin=today, yf=get_act_act)
@@ -210,7 +214,9 @@ class DateCurve:
 
         >>> from businessdate import BusinessDate
         >>> from businessdate.daycount import get_30_360
-        >>> from yieldcurves import DateCurve, eye
+        >>> from yieldcurves import DateCurve
+
+        >>> eye = lambda x: x  # identity curve
 
         >>> today = BusinessDate(20241231)
         >>> yc = DateCurve(eye, origin=today, yf=get_30_360)

@@ -141,6 +141,3 @@ class AlgebraCurve:
     def __rmatmul__(self, other):
         other = init(other)
         return AlgebraCurve(other) @ self
-
-
-eye = AlgebraCurve()

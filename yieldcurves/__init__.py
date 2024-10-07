@@ -28,7 +28,6 @@ import logging
 logging.getLogger(__name__).addHandler(logging.NullHandler())
 
 # todo:
-#  [ ] extract .tools to extra projects
 #  [ ] add global calibration using 'lmfit' (https://lmfit.github.io/lmfit-py/)
 #  [ ] doc AlgebraCurve
 
@@ -37,7 +36,7 @@ from . import compounding  # noqa E401 E402
 from . import interpolation  # noqa E401 E402
 
 from .datecurves import DateCurve  # noqa E401 E402
-from .tools.algebra import eye, AlgebraCurve  # noqa E401 E402
-from .tools.plot import plotter  # noqa E401 E402
+from .tools.algebra import AlgebraCurve  # noqa E401 E402
 from .tools.constant import constant, init  # noqa E401 E402
+from .tools.plot import plotter  # noqa E401 E402
 from .yieldcurves import *  # noqa E401 E402

@@ -87,7 +87,6 @@ class HullWhiteRegTests(RegressionTestCase):
                           model=foreign.model, domestic_curve=domestic,
                           foreign_curve=domestic)
 
-
     def test_global_exceptions(self):
         rate_corr = [
             [1.0, 0.6, 0.8],

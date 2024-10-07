@@ -1,7 +1,6 @@
 from regtest import RegressionTestCase
 
 from yieldcurves import AlgebraCurve
-from yieldcurves.tools import lin
 
 
 class AlgebraRegTests(RegressionTestCase):

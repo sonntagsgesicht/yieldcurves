@@ -19,6 +19,9 @@ class constant:
     def __call__(self, x):
         return self.curve
 
+    def __copy__(self):
+        return self.__class__(self.curve)
+
     def __bool__(self):
         return bool(self.curve)
 

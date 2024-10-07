@@ -2,6 +2,7 @@ auxilium
 businessdate
 dcf
 matplotlib
+numpy
 regtest
 scipy
 tabulate

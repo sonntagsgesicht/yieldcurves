@@ -11,7 +11,7 @@
 
 
 __doc__ = 'A Python library for financial yield curves.'
-__version__ = '0.2.2'
+__version__ = '0.2.3'
 __dev_status__ = '4 - Beta'
 __date__ = 'Monday, 07 October 2024'
 __author__ = 'sonntagsgesicht'

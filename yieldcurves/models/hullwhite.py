@@ -18,9 +18,8 @@ from prettyclass import prettyclass
 
 from ..compounding import continuous_compounding, continuous_rate
 from ..tools import ITERABLE
-from ..tools.numerics import integrate
+from ..tools.numerics import integrate, Matrix, Identity, cholesky
 from ..tools.constant import init
-from ..tools.matrix import Matrix, Identity, cholesky
 
 
 @prettyclass

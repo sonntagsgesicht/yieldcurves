@@ -82,9 +82,6 @@ class constant:
         return other % self.curve
 
 
-zero = constant()
-
-
 def init(curve):
     if callable(curve):
         return curve

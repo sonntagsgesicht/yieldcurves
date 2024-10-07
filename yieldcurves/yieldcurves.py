@@ -9,7 +9,6 @@
 # Website:  https://github.com/sonntagsgesicht/yieldcurves
 # License:  Apache License 2.0 (see LICENSE file)
 
-
 from math import prod
 import warnings
 
@@ -19,11 +18,11 @@ from .compounding import (simple_rate, simple_compounding, periodic_rate,
                           periodic_compounding, continuous_compounding,
                           continuous_rate)
 from . import interpolation as _interpolation
+from .interpolation import piecewise_linear, fit
 from .tools import ITERABLE, snake_case
 from .tools.numerics import integrate
-from .tools.fit import fit
 from .tools.constant import init
-
+from .tools.algebra import AlgebraCurve
 
 EPS = 1e-8
 CASH_FREQUENCY = 4
@@ -522,17 +521,23 @@ class YieldCurve(_YieldCurveAdapter):
         def __call__(self, x):
             x_list = 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 15, 20, 25, 30
             x_list = tuple(getattr(self.curve, 'x_list', x_list))
+            x_list = tuple(getattr(self, 'domain', x_list))
             y_list = tuple(self.curve(_) for _ in x_list)
 
+            # try to re-use cached results
             _x_list, _y_list, _inner = getattr(self, '_fit', [()] * 3)
             if x_list == _x_list:
                 if y_list == _y_list:
                     return _inner(x)
-                if max(abs(a - b) for a, b in zip(_y_list, y_list)) < 1e-7:
+                if max(abs(a - b) for a, b in zip(_y_list, y_list)) < EPS:
                     return _inner(x)
 
-            inner = YieldCurve(0.0, swap_frequency=self.frequency)
-            inner = fit(inner, x_list, y_list, method='swap', precision=1e-7)
+            curve = AlgebraCurve(0.0, inplace=True)
+            inner = YieldCurve(curve, swap_frequency=self.frequency)
+            r = fit(inner.curve, x_list, inner.swap, y_list, tolerance=EPS)
+            inner = piecewise_linear(r.keys(), r.values())
+
+            # cache results for later use
             setattr(self, '_fit', (x_list, y_list, inner))
             return inner(x)
 

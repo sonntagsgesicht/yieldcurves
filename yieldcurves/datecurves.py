@@ -17,7 +17,6 @@ from prettyclass import prettyclass
 from . import interpolation as _interpolation
 from .tools import ITERABLE
 from .yieldcurves import YieldCurve
-from .tools.fit import simple_bracketing, inverse
 
 
 @prettyclass
@@ -243,80 +242,42 @@ class DateCurve:
         if isinstance(y, ITERABLE):
             return type(y)(self.year_fraction(_) for _ in y)
         if y not in self._cache[self._cache_key]:
-            self._cache[self._cache_key][y] = self._inverse1(y)
+            self._cache[self._cache_key][y] = self._inverse(y)
         return self._cache[self._cache_key][y]
 
-    def _inverse(self, value):
-        raise NotImplementedError("this can fail with 'RecursionError'. "
-                                  "please use _inverse2")
-        # fails with RecursionError for
-        # c = DateCurve(..., origin=date(2024, 6, 30), yf=get_30_360)
-        # c._inverse(1.6694)
-        d = self.BASEDATE if self.origin is None else self.origin
-        if isinstance(d, (int, float)):
-            def err(x):
-                return self.year_fraction(d + x / self.DAYS_IN_YEAR) - value
+    def _inverse(self, value, step=4096):
+        def yf_inv(y, yf, step=1):
+            """inverse of year_fraction at y"""
+            x = 0
+            step = int(step) or 1
+            if yf(x + step) < yf(x):
+                return yf_inv(y, lambda x: -1 * yf(x), step=step)
+            while y < yf(x - step):
+                step *= 2
+            x -= step
+            if y == yf(x):
+                return x
+            while 0 < step:
+                while yf(x + step) < y:
+                    x += step
+                step //= 2
+            if y == yf(x):
+                return x
+            while yf(x + 1) <= y:
+                x += 1
+            return x if y - yf(x) < yf(x + 1) - y else x + 1
 
-            a = b = 0
-            step = 365
-            while 0 < err(a):
-                a -= step
-            while err(b) < 0:
-                b += step
-            m = simple_bracketing(err, a, b, 1 / 360)
-            return d + m / self.DAYS_IN_YEAR
-        else:
-            def err(x):
-                return self.year_fraction(d + timedelta(x)) - value
-
-            a = b = 0
-            step = 365
-            while 0 <= err(a):
-                a -= step
-            while err(b) < 0:
-                b += step
-            try:
-                m = simple_bracketing(err, a, b, 1 / 350)
-            except RecursionError as e:
-                print((value, self))
-                raise e
-            m = m if abs(err(m)) < abs(err(m + 1)) else m + 1
-            return d + timedelta(m)
-
-    def _inverse1(self, value, step=4096):
         d = self.BASEDATE if self.origin is None else self.origin
         if isinstance(d, (int, float)):
             def yf(x):
                 return self.year_fraction(d + x / self.DAYS_IN_YEAR)
 
-            return d + inverse(value, yf, step=step) / self.DAYS_IN_YEAR
+            return d + self._yf_inv(value, yf, step=step) / self.DAYS_IN_YEAR
         else:
             def yf(x):
                 return self.year_fraction(d + timedelta(x))
 
-            return d + timedelta(inverse(value, yf, step=step))
-
-    def _inverse2(self, value):
-        d = self.BASEDATE if self.origin is None else self.origin
-        if isinstance(d, (int, float)):
-            tdelta = (lambda t: float(max(1, int(t / 365))))
-        else:
-            tdelta = (lambda t: timedelta(days=t))
-
-        delta = tdelta(3650)
-        while value <= self.year_fraction(d):
-            d -= delta
-
-        times = 1461, 365, 90, 30, 7
-        for t in times:
-            delta = tdelta(t)
-            while self.year_fraction(d + delta) < value:
-                d += delta
-
-        delta = tdelta(1)
-        while self.year_fraction(d + delta) <= value:
-            d += delta
-        return d
+            return d + timedelta(yf_inv(value, yf, step=step))
 
     def __call__(self, *_, **__):
         _ = tuple(self.year_fraction(x) for x in _)

@@ -12,6 +12,7 @@
 
 from bisect import bisect_left, bisect_right
 from collections import UserDict
+from functools import partial
 from math import exp, log
 from reprlib import Repr
 # from typing import Dict, Iterable, Callable, Tuple
@@ -30,7 +31,7 @@ _repr.maxsting = _repr.maxother = 40
 
 def fit(curve,
         grid,  # grid: Iterable[float],
-        err_func_list,  # err_func_list: Iterable[Callable],
+        err_func,  # err_func: Callable | Iterable[Callable],
         target_list=None,  # target_list: Iterable[float] | None = None,
         interpolation_type=None,  # interpolation_type: str | Callable | None = None,  # noqa E501
         method='secant_method',  # method; str = 'secant_method'
@@ -45,16 +46,19 @@ def fit(curve,
 
     >>> yc = YieldCurve(AlgebraCurve(0.0, inplace=True))
     >>> grid = [1., 1.8, 2., 2.34]
-    >>> err_func_list = [partial(yc.df, t) for t in grid]
-    >>> target_list =  [0.94, 0.93, 0.92, 0.91]
+    >>> err_func = [partial(yc.df, t) for t in grid]
+    >>> # equivalent to err_func = yc.df 
+    >>> targets =  [0.94, 0.93, 0.92, 0.91]
 
-    >>> fit(yc.curve, grid, err_func_list, target_list)
+    >>> fit(yc.curve, grid, err_func, targets)
     {1.0: 0.06187540363412898, 1.8: 0.040317051604091554, 2.0: 0.04169080450970588, 2.34: 0.040303709259234204}
 
     """  # noqa E501
     if not getattr(curve, 'inplace', False):
         raise TypeError("fit requires AlgebraCurve(..., inplace=True)")
     grid = tuple(grid)
+    if callable(err_func):
+        err_func = [partial(err_func, x) for x in grid]
     if target_list is None:
         target_list = [0.0] * len(grid)
     if interpolation_type is None:
@@ -65,7 +69,7 @@ def fit(curve,
         func = interpolation_type
     addon = func(grid, [0.0] * len(grid))
     curve += addon
-    for t, f, v in zip(grid, err_func_list, target_list):
+    for t, f, v in zip(grid, err_func, target_list):
         # set error function
         def err(current):
             addon[t] = current

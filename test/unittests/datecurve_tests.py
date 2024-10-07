@@ -85,8 +85,7 @@ class YearFrachtionInverseUnitTests(TestCase):
 
                 x = a.inverse(f)
                 # self.assertEqual(x, a._inverse(f), msg=(d, a))
-                self.assertEqual(x, a._inverse1(f), msg=(d, a))
-                self.assertEqual(x, a._inverse2(f), msg=(d, a))
+                self.assertEqual(x, a._inverse(f), msg=(d, a))
 
 
 class DateCurveUnitTests(TestCase):

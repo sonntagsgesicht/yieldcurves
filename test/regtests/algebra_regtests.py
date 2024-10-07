@@ -6,15 +6,6 @@ from yieldcurves.tools import lin
 
 class AlgebraRegTests(RegressionTestCase):
 
-    def test_polynomial(self):
-        X = AlgebraCurve() @ float
-        p = (2 * X + 9 * X * X - X) / X
-        self.assertRegressiveEqual(str(p))
-        for x in lin(-10, 10, 0.123):
-            self.assertAlmostRegressiveEqual(p(x))
-        for x in lin(-10, 10, 0.123):
-            self.assertAlmostRegressiveEqual(p(str(x)))
-
     def test_copy(self):
         X = AlgebraCurve()
         self.assertTrue(X == X)

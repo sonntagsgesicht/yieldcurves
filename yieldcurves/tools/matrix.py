@@ -9,8 +9,13 @@
 # Website:  https://github.com/sonntagsgesicht/yieldcurves
 # License:  Apache License 2.0 (see LICENSE file)
 
+from warnings import warn
 
-from numpy import array as Matrix, eye as Identity  # noqa F401
+try:
+    from numpy import array as Matrix, eye as Identity  # noqa F401
+except ImportError:
+    Matrix = Identity = None
+    warn("matrix models require 'numpy'")
 
 
 def cholesky(A, lower=True):

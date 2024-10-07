@@ -18,7 +18,7 @@ __author__ = 'sonntagsgesicht'
 __email__ = 'sonntagsgesicht@icloud.com'
 __url__ = 'https://github.com/sonntagsgesicht/' + __name__
 __license__ = 'Apache License 2.0'
-__dependencies__ = 'vectorizeit',
+__dependencies__ = 'vectorizeit', 'prettyclass',
 __dependency_links__ = ()
 __data__ = ()
 __scripts__ = ()
@@ -40,5 +40,5 @@ from . import interpolation  # noqa E401 E402
 from .datecurves import DateCurve  # noqa E401 E402
 from .tools.algebra import eye, AlgebraCurve  # noqa E401 E402
 from .tools.plot import plotter  # noqa E401 E402
-from .tools.constant import constant, init  # noqa E401 E402
+from .tools.constant import constant, init, zero  # noqa E401 E402
 from .yieldcurves import *  # noqa E401 E402

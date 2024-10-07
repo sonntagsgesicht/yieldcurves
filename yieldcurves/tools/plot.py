@@ -72,7 +72,7 @@ def plot(x, *curve, legend=True, figsize=(10, 5), kind='plot', backend=None,
 class Plotter:
 
     def __init__(self, x, legend=True, figsize=(10, 5), kind='plot',
-                 backend=None, params=(), show=True, xlim=(), ylim=()):
+                 backend=None, params=None, show=True, xlim=(), ylim=()):
         self.x = lin(x) if isinstance(x, (int, float, slice)) else x
         self.legend = legend
         self.figsize = figsize
@@ -92,4 +92,4 @@ class Plotter:
         return Plotter(item)
 
 
-plotter = Plotter(100)
+plotter = Plotter(25)

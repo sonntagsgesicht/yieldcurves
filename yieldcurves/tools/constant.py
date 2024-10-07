@@ -13,7 +13,7 @@
 class constant:
     """constant curve"""
 
-    def __init__(self, curve):
+    def __init__(self, curve=0.0):
         self.curve = float(curve)
 
     def __call__(self, x):
@@ -80,6 +80,9 @@ class constant:
 
     def __rmod__(self, other):
         return other % self.curve
+
+
+zero = constant()
 
 
 def init(curve):

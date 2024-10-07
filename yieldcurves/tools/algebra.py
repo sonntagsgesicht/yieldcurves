@@ -26,7 +26,7 @@ class AlgebraCurve:
     * m1 * ... * mk / d1 / ... / dl
     + a1 + ... at - s1 - ... - sr"""
 
-    def __init__(self, curve=None, *, add=[], sub=[], mul=[], div=[], pre=[],
+    def __init__(self, curve=None, *, add=(), sub=(), mul=(), div=(), pre=(),
                  spread=0.0, leverage=1.0, multiplier=1.0, inplace=False):
         self.curve = None if curve is None else init(curve)
 

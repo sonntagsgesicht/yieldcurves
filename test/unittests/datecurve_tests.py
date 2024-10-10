@@ -2,10 +2,10 @@ from unittest import TestCase
 
 from businessdate import BusinessRange, BusinessDate
 from businessdate import daycount as dcc
+from curves.plot import lin
 
 from yieldcurves import AlgebraCurve, DateCurve
 from yieldcurves.interpolation import linear
-from yieldcurves.tools import lin
 
 
 day_count = DateCurve.dyf

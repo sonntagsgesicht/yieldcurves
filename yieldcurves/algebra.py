@@ -11,10 +11,9 @@
 
 from math import prod
 
-from vectorizeit import vectorize
+from curves import init
 from prettyclass import prettyclass
-
-from .constant import init
+from vectorizeit import vectorize
 
 
 @prettyclass

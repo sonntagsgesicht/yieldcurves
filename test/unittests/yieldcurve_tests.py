@@ -1,9 +1,9 @@
 from unittest import TestCase
 
+from curves.plot import lin
 from yieldcurves import AlgebraCurve, YieldCurve
 from yieldcurves.interpolation import linear
 from yieldcurves.models import NelsonSiegelSvensson
-from yieldcurves.tools import lin
 
 
 class YieldCurveTests(TestCase):

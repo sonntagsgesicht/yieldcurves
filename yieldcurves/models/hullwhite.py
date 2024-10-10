@@ -16,10 +16,12 @@ from random import Random
 
 from prettyclass import prettyclass
 
+from curves.numerics import integrate
+from curves import init
+
 from ..compounding import continuous_compounding, continuous_rate
 from ..tools import ITERABLE
-from ..tools.numerics import integrate, Matrix, Identity, cholesky
-from ..tools.constant import init
+from .matrix import Matrix, Identity, cholesky
 
 
 @prettyclass

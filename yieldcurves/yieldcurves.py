@@ -12,6 +12,8 @@
 from math import prod
 import warnings
 
+from curves.numerics import integrate
+from curves import init
 from prettyclass import prettyclass
 
 from .compounding import (simple_rate, simple_compounding, periodic_rate,
@@ -20,9 +22,7 @@ from .compounding import (simple_rate, simple_compounding, periodic_rate,
 from . import interpolation as _interpolation
 from .interpolation import piecewise_linear, fit
 from .tools import ITERABLE, snake_case
-from .tools.numerics import integrate
-from .tools.constant import init
-from .tools.algebra import AlgebraCurve
+from .algebra import AlgebraCurve
 
 EPS = 1e-8
 CASH_FREQUENCY = 4

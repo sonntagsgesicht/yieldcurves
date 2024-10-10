@@ -12,8 +12,6 @@
 
 from re import compile as _compile
 
-from .plot import plot, lin  # noqa F401
-
 
 EPS = 1 / 365.25
 ITERABLE = list, tuple

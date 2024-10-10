@@ -19,7 +19,7 @@ from reprlib import Repr
 
 from prettyclass import prettyclass
 
-from .tools.numerics import bisection_method, newton_raphson, secant_method
+from curves.numerics import bisection_method, newton_raphson, secant_method
 
 
 _repr = Repr()

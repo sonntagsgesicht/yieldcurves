@@ -1,7 +1,7 @@
+from curves.plot import lin
 from regtest import RegressionTestCase
 
 from yieldcurves.models import NelsonSiegelSvensson, HullWhite
-from yieldcurves.tools import lin
 
 
 class HullWhiteRegTests(RegressionTestCase):

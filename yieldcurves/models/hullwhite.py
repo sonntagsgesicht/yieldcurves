@@ -348,8 +348,12 @@ class _HullWhiteFx(_HullWhiteFactor):
     def __init__(self, curve, *, model=None,
                  domestic_curve=0.0, foreign_curve=0.0, **kwargs):
         super().__init__(curve, model=model, **kwargs)
-        self.domestic_curve = init(domestic_curve)
-        self.foreign_curve = init(foreign_curve)
+        if not callable(domestic_curve):
+            domestic_curve = init(domestic_curve)
+        self.domestic_curve = domestic_curve
+        if not callable(foreign_curve):
+            foreign_curve = init(foreign_curve)
+        self.foreign_curve = foreign_curve
 
         if isinstance(self.domestic_curve, _HullWhiteFactor):
             if self.model.domestic is not self.domestic_curve.model:

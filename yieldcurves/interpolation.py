@@ -12,6 +12,7 @@
 
 from bisect import bisect_left, bisect_right
 from collections import UserDict
+from copy import copy
 from functools import partial
 from math import exp, log
 from reprlib import Repr
@@ -19,7 +20,8 @@ from reprlib import Repr
 
 from prettyclass import prettyclass
 
-from .tools.numerics import bisection_method, newton_raphson, secant_method
+from curves import Curve
+from curves.numerics import bisection_method, newton_raphson, secant_method
 
 
 _repr = Repr()
@@ -41,10 +43,10 @@ def fit(curve,
     """ fit according to calibration routine to target values
 
     >>> from functools import partial
-    >>> from yieldcurves import YieldCurve, AlgebraCurve
+    >>> from yieldcurves import YieldCurve
     >>> from yieldcurves.interpolation import fit
 
-    >>> yc = YieldCurve(AlgebraCurve(0.0, inplace=True))
+    >>> yc = YieldCurve(0.0)
     >>> grid = [1., 1.8, 2., 2.34]
     >>> err_func = [partial(yc.df, t) for t in grid]
     >>> # equivalent to err_func = yc.df 
@@ -54,8 +56,6 @@ def fit(curve,
     {1.0: 0.06187540363412898, 1.8: 0.040317051604091554, 2.0: 0.04169080450970588, 2.34: 0.040303709259234204}
 
     """  # noqa E501
-    if not getattr(curve, 'inplace', False):
-        raise TypeError("fit requires AlgebraCurve(..., inplace=True)")
     grid = tuple(grid)
     if callable(err_func):
         err_func = [partial(err_func, x) for x in grid]
@@ -67,6 +67,24 @@ def fit(curve,
         func = globals()[interpolation_type]
     else:
         func = interpolation_type
+
+    # check iadd/isub of curve
+    if not isinstance(curve, Curve):
+        _curve = copy(curve)
+        _val = 0.01
+        _addon = func(grid, [_val] * len(grid))
+        _vals = {x: _curve(x) for x in grid}
+        _curve += _addon
+        _vals2 = [abs(_curve(x) - _val - v) for x, v in _vals.items()]
+        _curve -= _addon
+        _vals3 = [abs(_curve(x) - v) for x, v in _vals.items()]
+
+        if max(_vals2) + max(_vals3) < tolerance:
+            msg = (f"fit requires proper inplace add and sub of curves "
+                   f"but failed for {curve}")
+            raise TypeError(msg)
+
+    # move on to curve fitting
     addon = func(grid, [0.0] * len(grid))
     curve += addon
     for t, f, v in zip(grid, err_func, target_list):
@@ -93,6 +111,7 @@ def fit(curve,
 
 
 class plist(list):
+    """pretty print list"""
 
     def __str__(self):
         return _repr.repr(list(self))

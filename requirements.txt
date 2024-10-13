@@ -1,5 +1,6 @@
 auxilium
 businessdate
+curves
 dcf
 matplotlib
 numpy

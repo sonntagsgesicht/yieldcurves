@@ -16,10 +16,12 @@ from random import Random
 
 from prettyclass import prettyclass
 
+from curves.numerics import integrate
+from curves import init
+
 from ..compounding import continuous_compounding, continuous_rate
 from ..tools import ITERABLE
-from ..tools.numerics import integrate, Matrix, Identity, cholesky
-from ..tools.constant import init
+from .matrix import Matrix, Identity, cholesky
 
 
 @prettyclass
@@ -346,14 +348,18 @@ class _HullWhiteFx(_HullWhiteFactor):
     def __init__(self, curve, *, model=None,
                  domestic_curve=0.0, foreign_curve=0.0, **kwargs):
         super().__init__(curve, model=model, **kwargs)
-        self.domestic_curve = init(domestic_curve)
-        self.foreign_curve = init(foreign_curve)
+        if not callable(domestic_curve):
+            domestic_curve = init(domestic_curve)
+        self.domestic_curve = domestic_curve
+        if not callable(foreign_curve):
+            foreign_curve = init(foreign_curve)
+        self.foreign_curve = foreign_curve
 
         if isinstance(self.domestic_curve, _HullWhiteFactor):
-            if not self.model.domestic == self.domestic_curve.model:
+            if self.model.domestic is not self.domestic_curve.model:
                 raise ValueError('domestic model does not match')
         if isinstance(self.foreign_curve, _HullWhiteFactor):
-            if not self.model == self.foreign_curve.model:
+            if self.model is not self.foreign_curve.model:
                 raise ValueError('model does not match')
 
     def __float__(self):
@@ -620,9 +626,9 @@ class _HullWhiteGlobal:
                 if not isinstance(factors[i + 1], _HullWhiteFx):
                     cls = factors[i].__class__.__qualname__
                     raise ValueError(f'fx factor {i + 1} of wrong type: {cls}')
-                if not factors[i].model == factors[i + 1].model:
+                if factors[i].model is not factors[i + 1].model:
                     raise ValueError(f'factor model {i}  and {i + 1} differ')
-                if not factors[i].model.domestic == domestic.model:
+                if factors[i].model.domestic is not domestic.model:
                     d = factors[i].model.domestic
                     msg = f"domestic factor model {str(d)!r}" \
                           f" differs from {str(domestic.model)!r}"

@@ -15,15 +15,20 @@ from datetime import timedelta, date
 from prettyclass import prettyclass
 
 from . import interpolation as _interpolation
+from .interpolation import piecewise_linear
 from .tools import ITERABLE
 from .yieldcurves import YieldCurve
 
 
+_DAYS_IN_YEAR = 365.25
+_BASE_DATE = date.today()
+
+
 @prettyclass
 class DateCurve:
-    BASEDATE = date.today()
-    DAYS_IN_YEAR = 365.25
-    INTERPOLATION = 'linear'
+    BASEDATE = None
+    """default origin (if not **None** otherwise default origin will be current date)"""  # noqa F401
+
     _cache = {}
 
     def __init__(self, curve, *, origin=None, yf=None):
@@ -62,8 +67,6 @@ class DateCurve:
         """  # noqa E501
 
         self.curve = curve
-        if not isinstance(origin, float) and isinstance(self.BASEDATE, date):
-            origin = self._parse_date(origin)
         self.origin = origin
         self.yf = yf
         self._cache[self._cache_key] = self._cache.get(self._cache_key, {})
@@ -71,29 +74,33 @@ class DateCurve:
     def __bool__(self):
         return bool(self.curve)
 
-    def _parse_date(self, d):
-        if d is None:
-            return
-        t = type(self.BASEDATE)
-        if isinstance(d, t):
-            return d
-        if isinstance(d, date):
-            d = d.isoformat()
-        elif isinstance(d, int):
-            d = str(d)
-            d = f"{d[:4]}-{d[4:6]}-{d[6:8]}"
-        if isinstance(d, str):
-            return t.fromisoformat(d)
-        if not isinstance(d, (list, tuple)):
-            d = (d,)
-        return t(*d)
+    @property
+    def _origin(self):
+        origin = self.origin
+        if isinstance(origin, (int, float)):
+            # assume time is measured in year fractions
+            return origin
+        if origin is None:
+            # if there is no origin use BASE_DATE
+            return _BASE_DATE if self.BASEDATE is None else self.BASEDATE
+        # match BASE_DATE type and origin type
+        date_type = date if self.BASEDATE is None else type(self.BASEDATE)
+        if not isinstance(origin, date_type):
+            if issubclass(date_type, date):
+                if isinstance(origin, int):
+                    origin = str(origin)
+                    origin = f"{origin[:4]}-{origin[4:6]}-{origin[6:8]}"
+                origin = date.fromisoformat(str(origin))
+            else:
+                origin = date_type(origin)
+        return origin
 
     @property
     def _cache_key(self):
         return f"{self.origin} * {self.yf}"
 
     @staticmethod
-    def dyf(start, end):
+    def _dyf(start, end):
         r""" default year fraction function for rate period calculation
 
         :param start: period start date $t_s$
@@ -126,25 +133,21 @@ class DateCurve:
 
         """
         if isinstance(start, ITERABLE):
-            return type(start)(DateCurve.dyf(s, end) for s in start)
+            return type(start)(DateCurve._dyf(s, end) for s in start)
         if isinstance(end, ITERABLE):
-            return type(end)(DateCurve.dyf(start, e) for e in end)
+            return type(end)(DateCurve._dyf(start, e) for e in end)
         if hasattr(start, 'diff_in_days'):
             # duck typing businessdate.BusinessDate.diff_in_days
-            return float(start.diff_in_days(end)) / DateCurve.DAYS_IN_YEAR
-            # diff_years = date(end.year, 12, 31) - date(start.year, 1, 1)
-            # return float(start.diff_in_days(end)) / diff_years.days
+            return float(start.diff_in_days(end)) / _DAYS_IN_YEAR
         diff = end - start
         if hasattr(diff, 'days'):
             # assume datetime.date or finance.BusinessDate (else days as float)
-            return float(diff.days) / DateCurve.DAYS_IN_YEAR
-            # diff_years = date(end.year, 12, 31) - date(start.year, 1, 1)
-            # return float(diff.days / diff_years.days)
+            return float(diff.days) / _DAYS_IN_YEAR
         # use year fraction directly
         return float(diff)
 
     def year_fraction(self, x):
-        """year fraction function
+        r"""year fraction function
 
         :param x: date argument
         :return: float result
@@ -152,8 +155,31 @@ class DateCurve:
         calculates year fraction **y** of period from **origin** and **x** as
         `y = yf(origin, x)` with **yf** as given.
 
-        **yf** defaults to |DateCurve().dyf()| and
-        **origin** defaults to |DateCurve.BASEDATE|
+        **origin** defaults to |DateCurve.BASEDATE| or current date
+
+        **yf** defaults to default year fraction function
+        which calculates the number of days
+        between $t_s$ and $t_e$ expressed as a fraction of a year, i.e.
+        $$\tau(t_s, t_e) = \frac{t_e-t_s}{365.25}$$
+        as an average year has nearly $365.25$ days.
+
+        Since different date packages have different concepts to derive
+        the number of days between two dates, **day_count** tries to adopt
+        at least some of them. As there are:
+
+        * dates given already as year fractions as a
+          `float <https://docs.python.org/3/library/functions.html?#float>`_
+          so $\tau(t_s, t_e) = t_e - t_s$.
+
+        * `datetime <https://docs.python.org/3/library/datetime.html>`_
+          the native Python package, so $\delta = t_e - t_s$ is a **timedelta**
+          object with attribute **days** which is used.
+
+        * `businessdate <https://pypi.org/project/businessdate/>`_
+          a specialised package for banking business calendar
+          and time period calculations,
+          so the **BusinessDate** object **start** has a method
+          **start.diff_in_days** which is used.
 
         >>> from businessdate import BusinessRange, BusinessDate
         >>> from businessdate.daycount import get_act_act
@@ -184,8 +210,8 @@ class DateCurve:
             return None
         if isinstance(x, ITERABLE):
             return type(x)(self.year_fraction(_) for _ in x)
-        origin = self.BASEDATE if self.origin is None else self.origin
-        yf = self.yf or self.dyf
+        yf = self.yf or self._dyf
+        origin = self._origin
         date_type = type(origin)
         if not isinstance(x, date_type):
             x = date_type(x)
@@ -273,17 +299,18 @@ class DateCurve:
                 x += 1
             return x if y - yf(x) < yf(x + 1) - y else x + 1
 
-        d = self.BASEDATE if self.origin is None else self.origin
-        if isinstance(d, (int, float)):
-            def yf(x):
-                return self.year_fraction(d + x / self.DAYS_IN_YEAR)
+        origin = self._origin
 
-            return d + self._yf_inv(value, yf, step=step) / self.DAYS_IN_YEAR
+        if isinstance(origin, (int, float)):
+            def yf(x):
+                return self.year_fraction(origin + x / _DAYS_IN_YEAR)
+
+            return origin + self._yf_inv(value, yf, step=step) / _DAYS_IN_YEAR
         else:
             def yf(x):
-                return self.year_fraction(d + timedelta(x))
+                return self.year_fraction(origin + timedelta(x))
 
-            return d + timedelta(yf_inv(value, yf, step=step))
+            return origin + timedelta(yf_inv(value, yf, step=step))
 
     def __call__(self, *_, **__):
         _ = tuple(self.year_fraction(x) for x in _)
@@ -340,7 +367,7 @@ class DateCurve:
         >>> curve_type = YieldCurve.from_short_rates
         >>> yc = DateCurve.from_interpolation(domain, values, origin=today, curve_type=curve_type)
         >>> yc
-        DateCurve(YieldCurve.from_short_rates(linear([0.0, 1.002053388090349, 2.001368925393566, 3.0006844626967832, 4.0], [0.02, 0.022, 0.021, 0.019, 0.02])), origin=BusinessDate(20240101))
+        DateCurve(YieldCurve.from_short_rates(piecewise_linear([0.0, 1.002053388090349, 2.001368925393566, 3.0006844626967832, 4.0], [0.02, 0.022, 0.021, 0.019, 0.02])), origin=BusinessDate(20240101))
 
         >>> yc(today + '6m')
         0.020497267759562843
@@ -354,7 +381,7 @@ class DateCurve:
         curve_type = curve_type or YieldCurve
         curve_type = getattr(YieldCurve, str(curve_type), curve_type)
 
-        interpolation = interpolation or cls.INTERPOLATION
+        interpolation = interpolation or piecewise_linear
         interpolation = \
             getattr(_interpolation, str(interpolation), interpolation)
 
@@ -393,12 +420,3 @@ class DateCurve:
 
     def __contains__(self, item):
         return self.year_fraction(item) in self._curve
-
-    def update(self, other):
-        """updates innermost curve
-
-        :param other: dict
-        :return: DateCurve
-        """
-        other = {self.year_fraction(x): y for x, y in other.items()}
-        self._curve.update(other)

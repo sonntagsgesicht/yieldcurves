@@ -1,7 +1,8 @@
 from unittest import TestCase
 
+from curves import Curve
 from curves.plot import lin
-from yieldcurves import AlgebraCurve, YieldCurve
+from yieldcurves import YieldCurve
 from yieldcurves.interpolation import linear
 from yieldcurves.models import NelsonSiegelSvensson
 
@@ -30,13 +31,13 @@ class YieldCurveTests(TestCase):
         for x in self.domain:
             self.assertAlmostEqual(a(x), b(x))
 
-        a = AlgebraCurve(self.nss)
+        a = Curve(self.nss)
         b = YieldCurve(
             a, compounding_frequency=4, cash_frequency=4, swap_frequency=2)
         for x in lin(0.05, 20.05, 0.05):
             self.assertAlmostEqual(a(x), b(x))
 
-        a = AlgebraCurve(0.02)
+        a = Curve(0.02)
         b = YieldCurve(
             a, compounding_frequency=4, cash_frequency=4, swap_frequency=2)
         for x in lin(0.05, 20.05, 0.05):

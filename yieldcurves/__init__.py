@@ -11,9 +11,9 @@
 
 
 __doc__ = 'A Python library for financial yield curves.'
-__version__ = '0.2.3'
+__version__ = '0.2.4'
 __dev_status__ = '4 - Beta'
-__date__ = 'Monday, 07 October 2024'
+__date__ = 'Sunday, 13 October 2024'
 __author__ = 'sonntagsgesicht'
 __email__ = 'sonntagsgesicht@icloud.com'
 __url__ = 'https://github.com/sonntagsgesicht/' + __name__
@@ -28,7 +28,7 @@ import logging
 logging.getLogger(__name__).addHandler(logging.NullHandler())
 
 # todo:
-#  [ ] replace constant and AlgebraCurve by curves.Curve
+#  [ ] add tutorial incl. curve fitting
 #  [ ] add global calibration using 'lmfit' (https://lmfit.github.io/lmfit-py/)
 
 
@@ -36,5 +36,5 @@ from . import compounding  # noqa E401 E402
 from . import interpolation  # noqa E401 E402
 
 from .datecurves import DateCurve  # noqa E401 E402
-from .algebra import AlgebraCurve  # noqa E401 E402
-from .yieldcurves import *  # noqa E401 E402
+from .operators import *  # noqa E401 E402
+from .yieldcurves import YieldCurve  # noqa E401 E402

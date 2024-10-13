@@ -15,11 +15,12 @@ Yield Curve
 .. autoclass:: YieldCurve
     :inherited-members:
 
-.. autoclass:: YieldCurveOperator
+
+.. autoclass:: yieldcurves.operators.YieldCurveOperator
 
 
-Curve Models
-============
+Yield Curve Models
+==================
 
 .. module:: yieldcurves.models
 
@@ -27,24 +28,12 @@ Curve Models
 .. autoclass:: HullWhite
 
 
-Date Curve
-==========
+Yield Curves with Dates
+=======================
 
 .. module:: yieldcurves.datecurves
 
 .. autoclass:: DateCurve
-
-
-Algebra Curve
-=============
-
-.. automodule:: yieldcurves.tools.algebra
-
-
-Constant Curve
-==============
-
-.. automodule:: yieldcurves.tools.constant
 
 
 Fundamentals

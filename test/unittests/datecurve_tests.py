@@ -2,14 +2,14 @@ from unittest import TestCase
 
 from businessdate import BusinessRange, BusinessDate
 from businessdate import daycount as dcc
+from curves import Curve
 from curves.plot import lin
 
-from yieldcurves import AlgebraCurve, DateCurve
+from yieldcurves import DateCurve
 from yieldcurves.interpolation import linear
+from yieldcurves.datecurves import _DAYS_IN_YEAR as DAYS_IN_YEAR
 
-
-day_count = DateCurve.dyf
-DAYS_IN_YEAR = DateCurve.DAYS_IN_YEAR
+day_count = DateCurve._dyf
 
 
 class DefaultYearFrachtionUnitTests(TestCase):
@@ -65,8 +65,7 @@ class YearFrachtionInverseUnitTests(TestCase):
                 continue
             day_count = getattr(dcc, day_count)
             today = BusinessDate(20240630)
-            curve = AlgebraCurve()
-            a = DateCurve(curve, origin=today, yf=day_count)
+            a = DateCurve(Curve(), origin=today, yf=day_count)
             for d in BusinessRange(today, '2y', '3d'):
                 if '360' in str(a.year_fraction):
                     if d.day in (30, 31):

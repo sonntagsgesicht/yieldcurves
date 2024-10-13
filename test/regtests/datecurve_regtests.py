@@ -2,13 +2,12 @@ from regtest import RegressionTestCase
 
 from businessdate import BusinessDate
 from businessdate import daycount as dcc
+from curves import Curve
 from curves.plot import lin
 
-from yieldcurves import AlgebraCurve, DateCurve
+from yieldcurves import DateCurve
 
-
-day_count = DateCurve.dyf
-DAYS_IN_YEAR = DateCurve.DAYS_IN_YEAR
+day_count = DateCurve._dyf
 
 
 class YearFrachtionInverseUnitTests(RegressionTestCase):
@@ -23,7 +22,6 @@ class YearFrachtionInverseUnitTests(RegressionTestCase):
                 continue
             day_count = getattr(dcc, day_count)
             today = BusinessDate(20240630)
-            curve = AlgebraCurve()
-            a = DateCurve(curve, origin=today, yf=day_count)
+            a = DateCurve(Curve(), origin=today, yf=day_count)
             for y in lin(0, 11.1, 0.123456):
                 self.assertRegressiveEqual(str(a.inverse(y)))

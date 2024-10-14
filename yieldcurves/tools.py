@@ -5,7 +5,7 @@
 # A Python library for financial yield curves.
 #
 # Author:   sonntagsgesicht
-# Version:  0.2.5.2, copyright Monday, 14 October 2024
+# Version:  0.2.6.1, copyright Monday, 14 October 2024
 # Website:  https://github.com/sonntagsgesicht/yieldcurves
 # License:  Apache License 2.0 (see LICENSE file)
 
@@ -39,7 +39,7 @@ try:
 except ImportError as e:
     warn(str(e))
     vectorize = (lambda cls=None, *_, **__:
-                 cls if cls else (lambda cls: cls))
+                 print if cls else (lambda cls: print))
 
 
 EPS = 1 / 365.25

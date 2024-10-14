@@ -5,7 +5,7 @@
 # A Python library for financial yield curves.
 #
 # Author:   sonntagsgesicht
-# Version:  0.2.4, copyright Monday, 14 October 2024
+# Version:  0.2.6.1, copyright Monday, 14 October 2024
 # Website:  https://github.com/sonntagsgesicht/yieldcurves
 # License:  Apache License 2.0 (see LICENSE file)
 
@@ -13,15 +13,14 @@
 from math import prod
 import warnings
 
-from prettyclass import prettyclass
-
-from .curves import init, integrate
 from .compounding import (simple_rate, simple_compounding, periodic_rate,
                           periodic_compounding, continuous_compounding,
                           continuous_rate)
 from . import interpolation as _interpolation
 from .interpolation import piecewise_linear, fit
 from .tools import ITERABLE
+from .tools import prettyclass
+from .tools import init, integrate
 
 
 EPS = 1e-8

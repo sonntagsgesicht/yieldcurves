@@ -5,13 +5,13 @@
 # A Python library for financial yield curves.
 #
 # Author:   sonntagsgesicht
-# Version:  0.2.4, copyright Monday, 14 October 2024
+# Version:  0.2.6.1, copyright Monday, 14 October 2024
 # Website:  https://github.com/sonntagsgesicht/yieldcurves
 # License:  Apache License 2.0 (see LICENSE file)
 
 
 from math import exp, log, pow
-from vectorizeit import vectorize
+from .tools import vectorize
 
 
 @vectorize(['rate_value', 'maturity_value'], zipped=True)
@@ -183,7 +183,7 @@ def compounding_rate(df, period_fraction, frequency):
     return periodic_rate(df, period_fraction, frequency)
 
 
-def validate_compounding_pair(rate, factor):
+def _validate_compounding_pair(rate, factor):
     r, f = rate, factor
     for t in (0.00002737850787, 0.25, 0.5, .9, 1., 2., 5., 10.):
         for i in (0.0, 0.001, 0.001, 0.01, 0.1, 1):

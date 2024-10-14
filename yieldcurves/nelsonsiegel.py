@@ -5,7 +5,7 @@
 # A Python library for financial yield curves.
 #
 # Author:   sonntagsgesicht
-# Version:  0.2.5, copyright Monday, 14 October 2024
+# Version:  0.2.6.1, copyright Monday, 14 October 2024
 # Website:  https://github.com/sonntagsgesicht/yieldcurves
 # License:  Apache License 2.0 (see LICENSE file)
 
@@ -14,10 +14,9 @@ from datetime import date
 from math import exp
 
 import requests
-from vectorizeit import vectorize
-from prettyclass import prettyclass
 
-from .curves import Curve
+from .tools import vectorize
+from .tools import prettyclass
 
 
 """_params = {
@@ -144,7 +143,7 @@ def download_ecb(start='', end='', last=None, aaa_only=True):
 
 
 @prettyclass(init=False)
-class NelsonSiegelSvensson(Curve):
+class NelsonSiegelSvensson:
     downloads = {}
     """dictionary of downloaded curves with keys as dates as string"""
 

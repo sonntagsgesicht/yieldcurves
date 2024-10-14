@@ -5,7 +5,7 @@
 # A Python library for financial yield curves.
 #
 # Author:   sonntagsgesicht
-# Version:  0.2.2, copyright Thursday, 22 August 2024
+# Version:  0.2.4, copyright Monday, 14 October 2024
 # Website:  https://github.com/sonntagsgesicht/yieldcurves
 # License:  Apache License 2.0 (see LICENSE file)
 
@@ -43,8 +43,8 @@ class DateCurve:
             (optional, default is *actual/365.25*)
 
         >>> from datetime import date
-        >>> from yieldcurves import DateCurve 
-        
+        >>> from yieldcurves import DateCurve
+
         >>> eye = lambda x: x  # identity curve
 
         >>> yc = DateCurve(eye, origin=date(2024,1,1))

@@ -4,7 +4,7 @@ from curves import Curve
 from curves.plot import lin
 from yieldcurves import YieldCurve
 from yieldcurves.interpolation import linear
-from yieldcurves.models import NelsonSiegelSvensson
+from yieldcurves import NelsonSiegelSvensson
 
 
 class YieldCurveTests(TestCase):

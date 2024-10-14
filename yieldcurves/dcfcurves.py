@@ -5,13 +5,12 @@
 # A Python library for financial yield curves.
 #
 # Author:   sonntagsgesicht
-# Version:  0.2.4, copyright Monday, 14 October 2024
+# Version:  0.2.5.2, copyright Monday, 14 October 2024
 # Website:  https://github.com/sonntagsgesicht/yieldcurves
 # License:  Apache License 2.0 (see LICENSE file)
 
 
-from prettyclass import prettyclass
-
+from .tools import prettyclass
 from .datecurves import DateCurve
 
 

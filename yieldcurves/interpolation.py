@@ -5,7 +5,7 @@
 # A Python library for financial yield curves.
 #
 # Author:   sonntagsgesicht
-# Version:  0.2.4, copyright Monday, 14 October 2024
+# Version:  0.2.5.2, copyright Monday, 14 October 2024
 # Website:  https://github.com/sonntagsgesicht/yieldcurves
 # License:  Apache License 2.0 (see LICENSE file)
 
@@ -18,9 +18,8 @@ from math import exp, log
 from reprlib import Repr
 # from typing import Dict, Iterable, Callable, Tuple
 
-from prettyclass import prettyclass
-
-from .curves import Curve, bisection_method, newton_raphson, secant_method
+from .tools import Curve, bisection_method, newton_raphson, secant_method
+from .tools import prettyclass
 
 
 _repr = Repr()

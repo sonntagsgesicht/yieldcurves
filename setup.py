@@ -17,7 +17,7 @@ setup(
     author_email=pkg.__email__,
     url=pkg.__url__,
     license=pkg.__license__,
-    packages=find_packages(where=pkg.__name__),
+    packages=(pkg.__name__,),
     package_data={pkg.__name__: list(pkg.__data__)},
     entry_points={'console_scripts': pkg.__scripts__},
     install_requires=pkg.__dependencies__,

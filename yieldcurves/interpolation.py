@@ -5,7 +5,7 @@
 # A Python library for financial yield curves.
 #
 # Author:   sonntagsgesicht
-# Version:  0.2.2, copyright Thursday, 26 September 2024
+# Version:  0.2.4, copyright Monday, 14 October 2024
 # Website:  https://github.com/sonntagsgesicht/yieldcurves
 # License:  Apache License 2.0 (see LICENSE file)
 
@@ -20,8 +20,7 @@ from reprlib import Repr
 
 from prettyclass import prettyclass
 
-from curves import Curve
-from curves.numerics import bisection_method, newton_raphson, secant_method
+from .curves import Curve, bisection_method, newton_raphson, secant_method
 
 
 _repr = Repr()
@@ -49,7 +48,7 @@ def fit(curve,
     >>> yc = YieldCurve(0.0)
     >>> grid = [1., 1.8, 2., 2.34]
     >>> err_func = [partial(yc.df, t) for t in grid]
-    >>> # equivalent to err_func = yc.df 
+    >>> # equivalent to err_func = yc.df
     >>> targets =  [0.94, 0.93, 0.92, 0.91]
 
     >>> fit(yc.curve, grid, err_func, targets)

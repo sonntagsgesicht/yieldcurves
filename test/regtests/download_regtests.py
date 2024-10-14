@@ -1,6 +1,6 @@
 from regtest import RegressionTestCase
 
-from yieldcurves.models.nelsonsiegel import download_ecb, \
+from yieldcurves.nelsonsiegel import download_ecb, \
     NelsonSiegelSvensson as NSS
 
 

@@ -5,15 +5,15 @@
 # A Python library for financial yield curves.
 #
 # Author:   sonntagsgesicht
-# Version:  0.2.2, copyright Thursday, 22 August 2024
+# Version:  0.2.5, copyright Monday, 14 October 2024
 # Website:  https://github.com/sonntagsgesicht/yieldcurves
 # License:  Apache License 2.0 (see LICENSE file)
 
 
 __doc__ = 'A Python library for financial yield curves.'
-__version__ = '0.2.4'
+__version__ = '0.2.5'
 __dev_status__ = '4 - Beta'
-__date__ = 'Sunday, 13 October 2024'
+__date__ = 'Monday, 14 October 2024'
 __author__ = 'sonntagsgesicht'
 __email__ = 'sonntagsgesicht@icloud.com'
 __url__ = 'https://github.com/sonntagsgesicht/' + __name__
@@ -36,5 +36,7 @@ from . import compounding  # noqa E401 E402
 from . import interpolation  # noqa E401 E402
 
 from .datecurves import DateCurve  # noqa E401 E402
+from .hullwhite import HullWhite  # noqa E401 E402
+from .nelsonsiegel import NelsonSiegelSvensson  # noqa E401 E402
 from .operators import *  # noqa E401 E402
 from .yieldcurves import YieldCurve  # noqa E401 E402

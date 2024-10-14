@@ -1,6 +1,6 @@
 from regtest import RegressionTestCase
 
-from yieldcurves.models.nelsonsiegel import spot_rate, short_rate, \
+from yieldcurves.nelsonsiegel import spot_rate, short_rate, \
     NelsonSiegelSvensson as NSS, NelsonSiegelSvenssonShortRate as NS3
 
 

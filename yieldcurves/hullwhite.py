@@ -5,7 +5,7 @@
 # A Python library for financial yield curves.
 #
 # Author:   sonntagsgesicht
-# Version:  0.2.1, copyright Wednesday, 21 August 2024
+# Version:  0.2.5, copyright Monday, 14 October 2024
 # Website:  https://github.com/sonntagsgesicht/yieldcurves
 # License:  Apache License 2.0 (see LICENSE file)
 
@@ -16,11 +16,10 @@ from random import Random
 
 from prettyclass import prettyclass
 
-from curves.numerics import integrate
-from curves import init
 
-from ..compounding import continuous_compounding, continuous_rate
-from ..tools import ITERABLE
+from yieldcurves.compounding import continuous_compounding, continuous_rate
+from yieldcurves.tools import ITERABLE
+from .curves import init, integrate
 from .matrix import Matrix, Identity, cholesky
 
 
@@ -35,7 +34,7 @@ class _HullWhiteModel:
                  domestic_fx_correlation=0.):
         """
 
-        >>> from yieldcurves.models import HullWhite
+        >>> from yieldcurves import HullWhite
         >>> hw = HullWhite.Curve(0.02, mean_reversion=0.1, volatility=0.01)
         >>> hw.model.random.seed(101)
 
@@ -396,7 +395,7 @@ class _HullWhiteGlobal:
             dom, foreign_1, foreign_2, ... vs. fx_1, fx_2, ... (non symmetric)
         :return: dom, foreign_1, fx_1, foreign_2, fx_2, ... (symmetric)
 
-        >>> from yieldcurves.models import HullWhite
+        >>> from yieldcurves import HullWhite
 
         >>> rate_corr = [
         ...    [1.0, 0.6, 0.8],
@@ -465,7 +464,7 @@ class _HullWhiteGlobal:
             (optional: defaults to HullWhite defaults)
         :return: list of HullWhite curves and - if given - fx
 
-        >>> from yieldcurves.models import HullWhite
+        >>> from yieldcurves import HullWhite
 
         >>> curves = 0.02, 0.03
         >>> fx_rates = 1.2, 2.3
@@ -559,7 +558,7 @@ class _HullWhiteGlobal:
         :param factors:
         :param correlation:
 
-        >>> from yieldcurves.models import HullWhite
+        >>> from yieldcurves import HullWhite
 
         >>> rate_corr = [[1.0, 0.6], [0.6, 1.0]]
         >>> fx_corr = [[1.0]]

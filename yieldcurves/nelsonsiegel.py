@@ -5,7 +5,7 @@
 # A Python library for financial yield curves.
 #
 # Author:   sonntagsgesicht
-# Version:  0.2.1, copyright Tuesday, 16 July 2024
+# Version:  0.2.5, copyright Monday, 14 October 2024
 # Website:  https://github.com/sonntagsgesicht/yieldcurves
 # License:  Apache License 2.0 (see LICENSE file)
 
@@ -16,6 +16,8 @@ from math import exp
 import requests
 from vectorizeit import vectorize
 from prettyclass import prettyclass
+
+from .curves import Curve
 
 
 """_params = {
@@ -104,7 +106,7 @@ def download_ecb(start='', end='', last=None, aaa_only=True):
 
     If no arguments to select dates are given latest parameters are loaded.
 
-    >>> from yieldcurves.models.nelsonsiegel import spot_rate, download_ecb
+    >>> from yieldcurves.nelsonsiegel import spot_rate, download_ecb
 
     """
     root = "https://data-api.ecb.europa.eu/service/data/YC/"
@@ -142,7 +144,7 @@ def download_ecb(start='', end='', last=None, aaa_only=True):
 
 
 @prettyclass(init=False)
-class NelsonSiegelSvensson:
+class NelsonSiegelSvensson(Curve):
     downloads = {}
     """dictionary of downloaded curves with keys as dates as string"""
 
@@ -159,7 +161,7 @@ class NelsonSiegelSvensson:
         :param tau2: $\tau_2$ decay parameter
         :param timestamp: timestamp of curve
 
-        >>> from yieldcurves.models import NelsonSiegelSvensson
+        >>> from yieldcurves import NelsonSiegelSvensson
 
         """
         self.beta0 = beta0
@@ -219,7 +221,7 @@ class NelsonSiegelSvensson:
         :param t: date of parameters or (if of integer) latest parameter
         :return:
 
-        >>> from yieldcurves.models import NelsonSiegelSvensson
+        >>> from yieldcurves import NelsonSiegelSvensson
         >>> nss = NelsonSiegelSvensson.download('2024-08-01')
         >>> nss
         NelsonSiegelSvensson(beta0=0.3930624673, beta1=3.0642695848, beta2=-6.0856376597, beta3=9.3989699383, tau1=4.0804649054, tau2=9.9328952349, timestamp='2024-08-01')

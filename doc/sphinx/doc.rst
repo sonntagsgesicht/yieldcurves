@@ -10,8 +10,6 @@ API Documentation
 Yield Curve
 ===========
 
-.. module:: yieldcurves.yieldcurves
-
 .. autoclass:: YieldCurve
     :inherited-members:
 
@@ -22,16 +20,12 @@ Yield Curve
 Yield Curve Models
 ==================
 
-.. module:: yieldcurves.models
-
 .. autoclass:: NelsonSiegelSvensson
 .. autoclass:: HullWhite
 
 
 Yield Curves with Dates
 =======================
-
-.. module:: yieldcurves.datecurves
 
 .. autoclass:: DateCurve
 

@@ -39,21 +39,21 @@ class currency:
         return self.value
 
     def __add__(self, other):
-        if isinstance(other, currency) and not type(self) == type(other):
+        if isinstance(other, currency) and type(self) is not type(other):
             s, t = type(self).__name__, type(other).__name__
             m = f"unsupported operand type(s) for +: {s!r} and {t!r}"
             raise TypeError(m)
         return type(self)(float(self) + float(other))
 
     def __radd__(self, other):
-        if isinstance(other, currency) and not type(self) == type(other):
+        if isinstance(other, currency) and type(self) is not type(other):
             s, t = type(self).__name__, type(other).__name__
             m = f"unsupported operand type(s) for +: {s!r} and {t!r}"
             raise TypeError(m)
         return type(self)(float(self) + float(other))
 
     def __sub__(self, other):
-        if isinstance(other, currency) and not type(self) == type(other):
+        if isinstance(other, currency) and type(self) is not type(other):
             s, t = type(self).__name__, type(other).__name__
             m = f"unsupported operand type(s) for -: {s!r} and {t!r}"
             raise TypeError(m)

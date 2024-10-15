@@ -22,6 +22,9 @@ from .tools import Curve, bisection_method, newton_raphson, secant_method
 from .tools import prettyclass
 
 
+TOL = 1e-10
+
+
 _repr = Repr()
 _repr.maxlist = _repr.maxtuple = 1
 _repr.maxset = _repr.maxfrozenset = 1
@@ -34,9 +37,8 @@ def fit(curve,
         err_func,  # err_func: Callable | Iterable[Callable],
         target_list=None,  # target_list: Iterable[float] | None = None,
         interpolation_type=None,  # interpolation_type: str | Callable | None = None,  # noqa E501
-        method='secant_method',  # method; str = 'secant_method'
-        bounds=(-0.1, 0.2),  # bounds: Tuple[float, float] = (-0.1, 0.2),
-        tolerance=1e-10,  # tolerance: float = 1e-10,
+        method='secant_method',  # method; str | Callable = 'secant_method'
+        **kwargs  # kwargs Any  # keyword arguments for method
         ):  # ) -> Dict[float, float]:
     """ fit according to calibration routine to target values
 
@@ -77,7 +79,7 @@ def fit(curve,
         _curve -= _addon
         _vals3 = [abs(_curve(x) - v) for x, v in _vals.items()]
 
-        if max(_vals2) + max(_vals3) < tolerance:
+        if max(_vals2) + max(_vals3) < TOL:
             msg = (f"fit requires proper inplace add and sub of curves "
                    f"but failed for {curve}")
             raise TypeError(msg)
@@ -93,14 +95,23 @@ def fit(curve,
         # run root finding
 
         if 'newton' in method:
-            guess = sum(bounds) / 2
+            guess = kwargs.get('guess', 0.01)
+            tolerance = kwargs.get('tolerance', TOL)
             newton_raphson(err, guess, tolerance)
         elif 'secant' in method:
-            a, b = sum(bounds) / 3, sum(bounds) / 2
+            a, b = kwargs.get('bounds', (-0.01, 0.02))
+            a = kwargs.get('a', a)
+            b = kwargs.get('b', b)
+            tolerance = kwargs.get('tolerance', TOL)
             secant_method(err, a, b, tolerance)
         elif 'bisec' in method:
-            a, b = bounds
+            a, b = kwargs.get('bounds', (-0.1, 0.2))
+            a = kwargs.get('a', a)
+            b = kwargs.get('b', b)
+            tolerance = kwargs.get('tolerance', TOL)
             bisection_method(err, a, b, tolerance)
+        elif callable(method):
+            method(err, **kwargs)
         else:
             raise ValueError(f"unkown method {method}")
 

@@ -28,10 +28,14 @@ import logging
 logging.getLogger(__name__).addHandler(logging.NullHandler())
 
 # todo:
+#  [ ] fixed dependencies !!!
 #  [ ] add tutorial incl. curve fitting
+#  [ ] rethink DateCurve, dyf and inverse
 #  [ ] integrate currency.py
+#  [ ] add pretty currency (111.23.. Mio EUR for 111_234_000 EUR)
 #  [ ] add global calibration using 'lmfit' (https://lmfit.github.io/lmfit-py/)
-
+#  [ ] _repr_html_ as plot  + details?
+#  [x] make solver in fit optional w/- default (yc.nx)
 
 from . import compounding  # noqa E401 E402
 from . import interpolation  # noqa E401 E402

@@ -32,14 +32,71 @@ _repr.maxdict = 1
 _repr.maxsting = _repr.maxother = 40
 
 
+def _solve(f, method='secant_method', *args, **kwargs):
+    """solver providing function
+
+    :param f: (callable) function
+    :param method: (str or callable) solver method
+    :param args: **method*+ arguments
+    :param kwargs: **method*+ keyword arguments
+    :return:
+    """
+    # default arguments
+    if not args:
+        _solve_defaults = {
+            'newton': {'a': 0.01},
+            'secant': {'a': 0.01, 'b': 0.05},
+            'bisec': {'a': -0.1, 'b': 0.2}
+        }
+        for k, val in _solve_defaults.items():
+            if k in str(method):
+                val.update(**kwargs)
+                kwargs = val
+                break
+
+    # todo: remaining to be replaces by 'curves.numerics.solve()'
+
+    if callable(method):
+        return method(f, *args, **kwargs)
+
+    # default method
+    method = str(method) if method else 'secant_method'
+
+    # gather arguments
+    guess = kwargs.get('guess', None)
+    a, b = kwargs.pop('bounds', (guess, None))
+    a = kwargs.pop('a', a)
+    b = kwargs.pop('b', b)
+    if a:
+        kwargs['a'] = a
+    if b:
+        kwargs['b'] = b
+
+    tol = kwargs.pop('tol', None)
+    tol = kwargs.pop('tolerance', tol)
+    tol = kwargs.pop('precision', tol)
+    if tol:
+        kwargs['tol'] = tol
+
+    if 'newton' in method:
+        return newton_raphson(f, *args, **kwargs)
+
+    if 'secant' in method:
+        return secant_method(f, *args, **kwargs)
+
+    if 'bisec' in method:
+        return bisection_method(f, *args, **kwargs)
+
+    raise ValueError(f"unknown method {method}")
+
+
 def fit(curve,
         grid,  # grid: Iterable[float],
         err_func,  # err_func: Callable | Iterable[Callable],
         target_list=None,  # target_list: Iterable[float] | None = None,
         interpolation_type=None,  # interpolation_type: str | Callable | None = None,  # noqa E501
         method='secant_method',  # method; str | Callable = 'secant_method'
-        **kwargs  # kwargs Any  # keyword arguments for method
-        ):  # ) -> Dict[float, float]:
+        *args, **kwargs):  # ) -> Dict[float, float]:
     """ fit according to calibration routine to target values
 
     >>> from functools import partial
@@ -53,7 +110,7 @@ def fit(curve,
     >>> targets =  [0.94, 0.93, 0.92, 0.91]
 
     >>> fit(yc.curve, grid, err_func, targets)
-    {1.0: 0.06187540363412898, 1.8: 0.040317051604091554, 2.0: 0.04169080450970588, 2.34: 0.040303709259234204}
+    {1.0: 0.06187540344291151, 1.8: 0.04031705211720014, 2.0: 0.04169080503831063, 2.34: 0.040303710725208636}
 
     """  # noqa E501
     grid = tuple(grid)
@@ -93,27 +150,7 @@ def fit(curve,
             addon[t] = current
             return f() - v
         # run root finding
-
-        if 'newton' in method:
-            guess = kwargs.get('guess', 0.01)
-            tolerance = kwargs.get('tolerance', TOL)
-            newton_raphson(err, guess, tolerance)
-        elif 'secant' in method:
-            a, b = kwargs.get('bounds', (-0.01, 0.02))
-            a = kwargs.get('a', a)
-            b = kwargs.get('b', b)
-            tolerance = kwargs.get('tolerance', TOL)
-            secant_method(err, a, b, tolerance)
-        elif 'bisec' in method:
-            a, b = kwargs.get('bounds', (-0.1, 0.2))
-            a = kwargs.get('a', a)
-            b = kwargs.get('b', b)
-            tolerance = kwargs.get('tolerance', TOL)
-            bisection_method(err, a, b, tolerance)
-        elif callable(method):
-            method(err, **kwargs)
-        else:
-            raise ValueError(f"unkown method {method}")
+        _solve(err, method, *args, **kwargs)
 
     curve -= addon
     return dict(addon.items())

@@ -33,12 +33,6 @@ Yield Curves with Dates
 Fundamentals
 ============
 
-Interpolation
--------------
-
-.. automodule:: yieldcurves.interpolation
-    :exclude-members: plist
-
 Compounding
 -----------
 

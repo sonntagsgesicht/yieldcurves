@@ -1,9 +1,10 @@
 from unittest import TestCase
 
 from curves import Curve
+from curves.interpolation import linear
 from curves.plot import lin
+
 from yieldcurves import YieldCurve
-from yieldcurves.interpolation import linear
 from yieldcurves import NelsonSiegelSvensson
 
 

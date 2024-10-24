@@ -12,8 +12,8 @@
 
 from datetime import timedelta, date
 
-from . import interpolation as _interpolation
-from .interpolation import piecewise_linear
+from .tools import interpolation as _interpolation
+from .tools import piecewise_linear
 from .tools import ITERABLE
 from .tools import prettyclass
 from .yieldcurves import YieldCurve
@@ -318,6 +318,9 @@ class DateCurve:
 
     def __getattr__(self, item):
         if hasattr(self.curve, item):
+            if item.startswith('__'):
+                return getattr(self.curve, item)
+
             def func(*args, **kwargs):
                 args = tuple(self.year_fraction(x) for x in args)
                 kwargs = {k: self.year_fraction(y) for k, y in kwargs.items()}
@@ -348,7 +351,7 @@ class DateCurve:
             `interpolation(domain, curve)`
             to give inner curve, i.e. turning **domain** and **curve**
             into a callable turning **float** into **float**.
-            (optional, default is |linear|)
+            (optional, default is *piecewise linear interpolation*)
         :param [str, type] curve_type: type of curve
             (optional, default is |YieldCurve|)
         :param dict kwargs: additional arguments for curve type creation
@@ -357,8 +360,8 @@ class DateCurve:
         builds |DateCurve| with interpolated inner curve.
 
         >>> from businessdate import BusinessDate, BusinessRange
+        >>> from curves.interpolation import linear
         >>> from yieldcurves import DateCurve, YieldCurve
-        >>> from yieldcurves.interpolation import linear
 
         >>> today = BusinessDate(20240101)
         >>> domain = BusinessRange(today, today + '6y', '1y')

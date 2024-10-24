@@ -36,9 +36,11 @@ logging.getLogger(__name__).addHandler(logging.NullHandler())
 #  [ ] add global calibration using 'lmfit' (https://lmfit.github.io/lmfit-py/)
 #  [ ] _repr_html_ as plot  + details?
 #  [x] make solver in fit optional w/- default (yc.nx)
+#  [x] move interpolation to curve project
+#  [ ] make YieldCurve and DateCurve algebraic
+
 
 from . import compounding  # noqa E401 E402
-from . import interpolation  # noqa E401 E402
 
 from .datecurves import DateCurve  # noqa E401 E402
 from .hullwhite import HullWhite  # noqa E401 E402

@@ -14,15 +14,13 @@ from re import compile as _compile
 from warnings import warn
 
 try:
-    from curves import init, Curve  # noqa E401 E402
-    from curves.numerics import (integrate,  # noqa E401 E402
-                                 bisection_method,  # noqa E401 E402
-                                 newton_raphson,  # noqa E401 E402
-                                 secant_method)  # noqa E401 E402
+    from curves import init, Curve, fit  # noqa E401 E402
+    from curves import interpolation  # noqa E401 E402
+    from curves.interpolation import piecewise_linear, linear  # noqa E401 E402
+    from curves.numerics import integrate  # noqa E401 E402
 except ImportError as e:
     warn(str(e))
-    init = bisection_method = newton_raphson = secant_method = \
-        integrate = lambda *_, **__: None
+    init = piecewise_linear = fit = integrate = lambda *_, **__: None
     Curve = object
 
 

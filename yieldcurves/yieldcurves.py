@@ -16,8 +16,8 @@ import warnings
 from .compounding import (simple_rate, simple_compounding, periodic_rate,
                           periodic_compounding, continuous_compounding,
                           continuous_rate)
-from . import interpolation as _interpolation
-from .interpolation import piecewise_linear, fit
+from .tools import interpolation as _interpolation
+from .tools import piecewise_linear, fit
 from .tools import ITERABLE
 from .tools import prettyclass
 from .tools import init, integrate
@@ -83,8 +83,8 @@ class _YieldCurveAdapter:
     def short(self, x, y=None):
         """short rate aka. instantaneous forward rate"""
         try:
-            y = min((d for d in self if x < d), default=x + EPS)
-            x = max((d for d in self if d <= x), default=x)
+            y = min((d for d in self.curve if x < d), default=x + EPS)
+            x = max((d for d in self.curve if d <= x), default=x)
         except TypeError:
             x, y = x - EPS / 2, x + EPS / 2
         return self.spot(x, y)
@@ -209,7 +209,7 @@ class YieldCurve(_YieldCurveAdapter):
     as mandantory argument and provides a varity of methods to derive
     financial figures.
 
-    >>> from yieldcurves.interpolation import linear
+    >>> from curves.interpolation import linear
     >>> from yieldcurves import YieldCurve
 
     >>> yc = YieldCurve(linear([0, 10], [0.01, 0.02]), spot_price=100, compounding_frequency=12)
@@ -364,7 +364,7 @@ class YieldCurve(_YieldCurveAdapter):
     class from_prices(_YieldCurveAdapter):
         """yield curve from curve of prices
 
-        >>> from yieldcurves.interpolation import linear
+        >>> from curves.interpolation import linear
         >>> from yieldcurves import YieldCurve
 
         >>> c = linear([0, 10], [100, 120])
@@ -387,7 +387,7 @@ class YieldCurve(_YieldCurveAdapter):
     class from_spot_rates(_YieldCurveAdapter):
         """yield curve from curve of spot rates
 
-        >>> from yieldcurves.interpolation import linear
+        >>> from curves.interpolation import linear
         >>> from yieldcurves import YieldCurve
 
         >>> c = linear([0, 10], [0.05, 0.06])
@@ -407,7 +407,7 @@ class YieldCurve(_YieldCurveAdapter):
     class from_short_rates(_YieldCurveAdapter):
         """yield curve from curve of short rates
 
-        >>> from yieldcurves.interpolation import linear
+        >>> from curves.interpolation import linear
         >>> from yieldcurves import YieldCurve
 
         >>> c = linear([0, 10], [0.05, 0.06])
@@ -438,7 +438,7 @@ class YieldCurve(_YieldCurveAdapter):
     class from_df(_YieldCurveAdapter):
         """yield curve from curve of discount factors
 
-        >>> from yieldcurves.interpolation import linear
+        >>> from curves.interpolation import linear
         >>> from yieldcurves import YieldCurve
 
         >>> c = linear([0, 10], [0.99, 0.9])
@@ -465,7 +465,7 @@ class YieldCurve(_YieldCurveAdapter):
     class from_zero_rates(_CompoundingYieldCurveAdapter):
         """yield curve from curve of zero coupon bond rates
 
-        >>> from yieldcurves.interpolation import linear
+        >>> from curves.interpolation import linear
         >>> from yieldcurves import YieldCurve
 
         >>> c = linear([0, 10], [0.05, 0.06])

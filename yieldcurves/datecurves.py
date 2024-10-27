@@ -311,10 +311,13 @@ class DateCurve:
 
             return origin + timedelta(yf_inv(value, yf, step=step))
 
-    def __call__(self, *_, **__):
-        _ = tuple(self.year_fraction(x) for x in _)
-        __ = {k: self.year_fraction(y) for k, y in __.items()}
-        return self.curve(*_, **__)
+    def __call__(self, x, y=None, **__):
+        if y is None:
+            x = self.year_fraction(x)
+            return self.curve(x, **__)
+        x = self.year_fraction(x)
+        y = self.year_fraction(y)
+        return self.curve(x, y, **__)
 
     def __getattr__(self, item):
         if hasattr(self.curve, item):

@@ -24,4 +24,4 @@ class DownloadRegTests(RegressionTestCase):
         date = '2020-02-24'
         NSS.download(date)
         self.assertRegressiveEqual(11 < len(NSS.downloads))
-        self.assertRegressiveEqual(NSS.downloads[0] == date)
+        self.assertRegressiveEqual(list(NSS.downloads)[0] == date)

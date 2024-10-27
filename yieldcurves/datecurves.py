@@ -11,6 +11,7 @@
 
 
 from datetime import timedelta, date
+from typing import Any as DateType
 
 from .tools import interpolation as _interpolation
 from .tools import piecewise_linear
@@ -311,13 +312,10 @@ class DateCurve:
 
             return origin + timedelta(yf_inv(value, yf, step=step))
 
-    def __call__(self, x, y=None, **__):
-        if y is None:
-            x = self.year_fraction(x)
-            return self.curve(x, **__)
-        x = self.year_fraction(x)
-        y = self.year_fraction(y)
-        return self.curve(x, y, **__)
+    def __call__(self, *args, **kwargs):
+        args = tuple(self.year_fraction(x) for x in args)
+        # kw = {k: self.year_fraction(y) for k, y in kwargs.items()}
+        return self.curve(*args, **kwargs)
 
     def __getattr__(self, item):
         if hasattr(self.curve, item):
@@ -326,7 +324,7 @@ class DateCurve:
 
             def func(*args, **kwargs):
                 args = tuple(self.year_fraction(x) for x in args)
-                kwargs = {k: self.year_fraction(y) for k, y in kwargs.items()}
+                # kw = {k: self.year_fraction(y) for k, y in kwargs.items()}
                 return getattr(self.curve, item)(*args, **kwargs)
             func.__qualname__ = self.__class__.__qualname__ + '.' + item
             func.__name__ = item

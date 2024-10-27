@@ -11,7 +11,7 @@
 
 
 __doc__ = 'A Python library for financial yield curves.'
-__version__ = '0.2.7'
+__version__ = '0.2.8'
 __dev_status__ = '4 - Beta'
 __date__ = 'Monday, 14 October 2024'
 __author__ = 'sonntagsgesicht'
@@ -38,6 +38,9 @@ logging.getLogger(__name__).addHandler(logging.NullHandler())
 #  [x] make solver in fit optional w/- default (yc.nx)
 #  [x] move interpolation to curve project
 #  [ ] make YieldCurve and DateCurve algebraic
+#  [x] add OptionPricingCurve
+#  [ ] add VolatilityCurve
+#  [ ] rethink yc.cash(x, y) as E[yc(y) | x], i.e. yc.cash(x, y) = yc.cash(y)?
 
 
 from . import compounding, optionpricing  # noqa E401 E402

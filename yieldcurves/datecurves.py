@@ -11,7 +11,6 @@
 
 
 from datetime import timedelta, date
-from typing import Any as DateType
 
 from .tools import interpolation as _interpolation
 from .tools import piecewise_linear

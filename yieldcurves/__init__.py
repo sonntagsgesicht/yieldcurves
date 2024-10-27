@@ -40,10 +40,11 @@ logging.getLogger(__name__).addHandler(logging.NullHandler())
 #  [ ] make YieldCurve and DateCurve algebraic
 
 
-from . import compounding  # noqa E401 E402
+from . import compounding, optionpricing  # noqa E401 E402
 
 from .datecurves import DateCurve  # noqa E401 E402
 from .hullwhite import HullWhite  # noqa E401 E402
 from .nelsonsiegel import NelsonSiegelSvensson  # noqa E401 E402
 from .operators import *  # noqa E401 E402
+from .optioncurves import OptionPricingCurve  # noqa E401 E402
 from .yieldcurves import YieldCurve  # noqa E401 E402

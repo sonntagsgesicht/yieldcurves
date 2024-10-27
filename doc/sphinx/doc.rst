@@ -24,6 +24,12 @@ Yield Curve Models
 .. autoclass:: HullWhite
 
 
+Yield Curves for Option Pricing
+===============================
+
+.. autoclass:: OptionPricingCurve
+
+
 Yield Curves with Dates
 =======================
 
@@ -37,3 +43,9 @@ Compounding
 -----------
 
 .. automodule:: yieldcurves.compounding
+
+
+Option Pricing Formulas
+-----------------------
+
+.. automodule:: yieldcurves.optionpricing

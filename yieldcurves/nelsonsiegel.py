@@ -254,12 +254,6 @@ class NelsonSiegelSvensson:
         cls.downloads = dict(sorted(cls.downloads.items()))
         return cls.downloads[t]
 
-    @classmethod
-    @property
-    def download_dates(cls):
-        """available parameter dates"""
-        return tuple(cls.downloads)
-
 
 class NelsonSiegelSvenssonShortRate(NelsonSiegelSvensson):
 

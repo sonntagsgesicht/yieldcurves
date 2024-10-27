@@ -4,8 +4,9 @@ curves
 dcf
 matplotlib
 numpy
+prettyclass
 regtest
 scipy
+setuptools
 tabulate
 vectorizeit
-prettyclass

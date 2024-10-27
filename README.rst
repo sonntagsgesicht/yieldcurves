@@ -39,8 +39,8 @@ Example Usage
 -------------
 
 
+>>> from curves.interpolation import linear
 >>> from yieldcurves import YieldCurve
->>> from yieldcurves.interpolation import linear
 
 >>> time_grid = [0, 2]
 >>> rate_grid = [.03, .05]

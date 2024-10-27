@@ -19,8 +19,8 @@ class YieldCurveOperator:
     def __init__(self, curve: YieldCurve):
         r"""Operator turning |YieldCurve| into simple callable
 
+        >>> from curves.interpolation import linear
         >>> from yieldcurves import YieldCurve
-        >>> from yieldcurves.interpolation import linear
         >>> yc = YieldCurve(linear([0, 10], [0.01, 0.02]), spot_price=10)
 
         Turn yield curve into general finanical curve like ...

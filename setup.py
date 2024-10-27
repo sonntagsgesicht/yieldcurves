@@ -3,14 +3,14 @@
 from codecs import open
 
 try:
-    from setuptools import setup, find_packages
+    from setuptools import setup
 except ImportError:
     from distutils.core import setup
 
 setup(
     name='yieldcurves',
     description='A Python library for financial yield curves.',
-    version='0.2.7',
+    version='0.2.8',
     author='sonntagsgesicht',
     author_email='sonntagsgesicht@icloud.com',
     url='https://github.com/sonntagsgesicht/yieldcurves',
@@ -24,6 +24,7 @@ setup(
         'Development Status :: 4 - Beta',
         'Intended Audience :: Education',
         'Intended Audience :: Developers',
+        'Intended Audience :: Financial and Insurance Industry',
         'License :: OSI Approved :: Apache Software License',
         'Operating System :: OS Independent',
         'Programming Language :: Python',
@@ -31,6 +32,7 @@ setup(
         'Programming Language :: Python :: 3.10',
         'Programming Language :: Python :: 3.11',
         'Programming Language :: Python :: 3.12',
+        'Programming Language :: Python :: 3.13',
         'Topic :: Education',
         'Topic :: Software Development',
     ],

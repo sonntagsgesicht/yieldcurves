@@ -2,11 +2,12 @@ from unittest import TestCase
 
 from businessdate import BusinessRange, BusinessDate
 from businessdate import daycount as dcc
+
 from curves import Curve
+from curves.interpolation import linear
 from curves.plot import lin
 
-from yieldcurves import DateCurve
-from yieldcurves.interpolation import linear
+from yieldcurves import DateCurve, OptionPricingCurve
 from yieldcurves.datecurves import _DAYS_IN_YEAR as DAYS_IN_YEAR
 
 day_count = DateCurve._dyf
@@ -143,3 +144,21 @@ class DateCurveUnitTests(TestCase):
         c = linear([0.0, 0.25, 0.75, 1.0], [10.0, 7.0, 3.0, 0.0])
         self.assertAlmostEqual(d._curve.x_list, c.x_list)
         self.assertAlmostEqual(d._curve.y_list, c.y_list)
+
+    def test_optionpricing(self):
+        f = linear([0, 10], [0.01, 0.05])
+        v = linear([0, 10], [0.1, 0.2])
+        p = OptionPricingCurve.black76(f, v)
+        origin = BusinessDate(20200202)
+        d = DateCurve(p, origin=origin)
+        for t in ('1y', '5y', '10y'):
+            for k in (0.01, 0.02, 0.03, 0.04, 0.05):
+                x, y = origin, origin + t
+                self.assertAlmostEqual(d(y), d.forward(y))
+                self.assertAlmostEqual(d.call(y), d.call(x, y))
+                self.assertAlmostEqual(d.call(y, strike=k),
+                                       d.call(x, y, strike=k))
+                self.assertAlmostEqual(d.call_delta(y, strike=k),
+                                       d.call_delta(x, y, strike=k))
+                self.assertAlmostEqual(d.binary_put(y, strike=k),
+                                       d.binary_put(x, y, strike=k))

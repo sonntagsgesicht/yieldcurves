@@ -24,6 +24,12 @@ Yield Curve Models
 .. autoclass:: HullWhite
 
 
+Yield Curves for Option Pricing
+===============================
+
+.. autoclass:: OptionPricingCurve
+
+
 Yield Curves with Dates
 =======================
 
@@ -33,13 +39,13 @@ Yield Curves with Dates
 Fundamentals
 ============
 
-Interpolation
--------------
-
-.. automodule:: yieldcurves.interpolation
-    :exclude-members: plist
-
 Compounding
 -----------
 
 .. automodule:: yieldcurves.compounding
+
+
+Option Pricing Formulas
+-----------------------
+
+.. automodule:: yieldcurves.optionpricing

@@ -10,7 +10,7 @@ except ImportError:
 setup(
     name='yieldcurves',
     description='A Python library for financial yield curves.',
-    version='0.2.8',
+    version='0.2.9',
     author='sonntagsgesicht',
     author_email='sonntagsgesicht@icloud.com',
     url='https://github.com/sonntagsgesicht/yieldcurves',

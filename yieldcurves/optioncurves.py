@@ -137,13 +137,13 @@ class OptionPricingCurve:
         """
         if y is None:
             x, y = 0.0, x
-        tau, strike, fwd, vol = self._tsfv(x, y, strike=strike)
+        tau, _strike, fwd, vol = self._tsfv(x, y, strike=strike)
         option_model = getattr(self.formula, '__qualname__', str(self.formula))
         details = {
             'valuation date': x,
             'expiry date': y,
             'time to expiry': tau,
-            'strike': strike,
+            'strike': _strike,
             'forward': fwd,
             'volatility': vol,
             'option model': option_model.replace('()', ''),
@@ -208,11 +208,10 @@ class OptionPricingCurve:
         $$P_K(F(T)) = K - F(T) + C_K(F(T))$$
 
         """
-        fwd = self(x, y)
-        call = self.call(x, y, strike=strike)
-        if strike is None:
-            strike = fwd
-        return strike - fwd + call  # put/call parity
+        tau, strike, fwd, vol = self._tsfv(x, y, strike=strike)
+        if self.formula is None or not vol or not tau:
+            return max(0.0, strike - fwd)
+        return strike - fwd + self.formula(tau, strike, fwd, vol)
 
     def call_delta(self, x, y=None, *, strike=None):
         r""" delta sensitivity of a call option
@@ -414,7 +413,8 @@ class OptionPricingCurve:
                 return call
 
         shift = self.bump_binary or 0.0001
-        strike = self(x, y) if strike is None else strike
+        if strike is None:
+            tau, strike, fwd, vol = self._tsfv(x, y, strike=strike)
         call_spread = self.call(x, y, strike=strike + shift / 2)
         call_spread -= self.call(x, y, strike=strike - shift / 2)
         return call_spread / shift
